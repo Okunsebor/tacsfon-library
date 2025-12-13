@@ -65,16 +65,22 @@ export default function LibrarianDashboard() {
       <div className="max-w-6xl mx-auto">
         
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
             <div>
                 <h1 className="text-3xl font-bold text-gray-800">Librarian Desk</h1>
-                <p className="text-gray-500">Manage students and inventory</p>
+                <p className="text-gray-500">Manage students, books, and media.</p>
             </div>
-            <Link href="/admin/add-book" className="bg-tacsfon-orange text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg">
-                + Add New Book
-            </Link>
+            <div className="flex gap-3">
+                {/* Upload Media Button */}
+                <Link href="/admin/upload-media" className="bg-gray-800 text-white px-5 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
+                    <span className="text-tacsfon-neonGreen text-xl">+</span> Upload Media
+                </Link>
+                {/* Add Book Button */}
+                <Link href="/admin/add-book" className="bg-tacsfon-orange text-white px-5 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md flex items-center gap-2">
+                    <span className="text-white text-xl">+</span> Add Book
+                </Link>
+            </div>
         </div>
-
         {/* TABS (This is the NEW Layout) */}
         <div className="flex gap-4 mb-8 border-b border-gray-200 pb-1">
             <button 
