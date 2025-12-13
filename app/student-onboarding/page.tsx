@@ -1,12 +1,11 @@
 'use client';
 
-// 1. Add Suspense to imports
 import { useState, Suspense } from 'react'; 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Book, GraduationCap, School, ChevronRight, Edit3 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
-// OFFICIAL FUTMINNA DATA (2025)
+// ... (Your FACULTIES constant goes here) ...
 const FACULTIES = {
   "SAAT": {
     name: "School of Agriculture & Agricultural Tech",
@@ -46,7 +45,7 @@ const FACULTIES = {
   }
 };
 
-// 2. CREATE A SEPARATE COMPONENT FOR THE CONTENT
+// 1. CONTENT COMPONENT (Contains the search params logic)
 function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams(); 
@@ -265,10 +264,14 @@ function OnboardingContent() {
   );
 }
 
-// 3. THIS IS THE MAIN EXPORT THAT WRAPS THE CONTENT IN SUSPENSE
+// 2. MAIN EXPORT (Wraps the content in Suspense)
 export default function StudentOnboarding() {
   return (
     <main className="min-h-screen bg-gray-900 flex items-center justify-center p-4 text-white">
+      {/* This Suspense boundary is REQUIRED by Next.js for any component 
+         that uses useSearchParams(). It tells the build server: 
+         "Wait to render this part until the browser is ready."
+      */}
       <Suspense fallback={<div className="text-white text-center">Loading onboarding...</div>}>
         <OnboardingContent />
       </Suspense>
