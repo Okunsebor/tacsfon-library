@@ -10,7 +10,7 @@ export default function Home() {
   const [student, setStudent] = useState<any>(null);
 
   useEffect(() => {
-    // 1. Check if a student is logged in (from Onboarding)
+    // 1. Check if a student is logged in
     const savedStudent = localStorage.getItem('tacsfonStudent');
     if (savedStudent) {
       setStudent(JSON.parse(savedStudent));
@@ -30,7 +30,7 @@ export default function Home() {
 
   // FILTER LOGIC: Find books that match student interests
   const recommendedBooks = student 
-    ? books.filter(b => student.interests.includes(b.category) || student.department === b.category)
+    ? books.filter(b => (student.interests || []).includes(b.category) || student.department === b.category)
     : [];
 
   if (loading) return (
@@ -59,14 +59,14 @@ export default function Home() {
                  Verified Student Access
               </span>
               <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-white tracking-tight">
-                Welcome Back, <span className="text-tacsfon-neonOrange">{student.full_name}</span>
+                Welcome Back, <span className="text-tacsfon-neonOrange">{student.full_name || 'Scholar'}</span>
               </h1>
               <p className="text-gray-300 text-xl font-light max-w-2xl mx-auto mb-8">
                 We've curated resources for <strong>{student.department}</strong> and your interests.
               </p>
             </>
           ) : (
-             // ... Guest Welcome (Keep as is) ...
+            // GUEST WELCOME
             <>
               <span className="text-tacsfon-orange font-bold tracking-widest text-sm uppercase mb-4 block">Official Archive</span>
               <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-white tracking-tight">
@@ -96,14 +96,25 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
               {recommendedBooks.map((book) => (
                 <Link href={`/book/${book.id}`} key={book.id} className="group block h-full">
-                  <div className="bg-white rounded-2xl transition-all hover:-translate-y-2 hover:shadow-xl hover:shadow-tacsfon-neonGreen/20 border-2 border-transparent hover:border-tacsfon-neonGreen/50 h-full flex flex-col overflow-hidden relative">
-                    <div className="bg-gray-100 h-52 flex items-center justify-center text-gray-400 relative group-hover:bg-tacsfon-neonGreen/10 transition-colors">
-                       <span className="text-6xl group-hover:scale-110 transition-transform">📘</span>
-                       <div className="absolute top-2 right-2 bg-tacsfon-neonOrange text-white text-[10px] font-bold px-2 py-1 rounded-full">MATCH</div>
+                  <div className="bg-white rounded-2xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border-2 border-transparent hover:border-tacsfon-neonGreen/50 h-full flex flex-col overflow-hidden relative">
+                    
+                    {/* COVER IMAGE */}
+                    <div className="h-64 overflow-hidden relative bg-gray-100">
+                        <img 
+                          src={book.cover_url || "https://placehold.co/400x600?text=No+Cover"} 
+                          alt={book.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute top-2 right-2 bg-tacsfon-neonOrange text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md z-10">
+                          MATCH
+                        </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">{book.title}</h3>
-                      <p className="text-sm text-gray-500">{book.author}</p>
+
+                    <div className="p-5 flex flex-col flex-grow">
+                      <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2 group-hover:text-tacsfon-green transition-colors">
+                        {book.title}
+                      </h3>
+                      <p className="text-xs text-gray-400 font-medium mb-3">{book.author}</p>
                     </div>
                   </div>
                 </Link>
@@ -128,13 +139,31 @@ export default function Home() {
                 .filter(book => (book.category || 'Uncategorized') === category)
                 .map((book) => (
                   <Link href={`/book/${book.id}`} key={book.id} className="group block h-full">
-                    <div className="bg-white rounded-2xl transition-all hover:-translate-y-2 hover:shadow-lg border border-gray-100 h-full flex flex-col overflow-hidden">
-                      <div className="bg-gray-50 h-48 flex items-center justify-center text-gray-300 relative group-hover:bg-tacsfon-green/5 transition-colors">
-                         <span className="text-5xl group-hover:scale-105 transition-transform">📘</span>
+                    <div className="bg-white rounded-2xl transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-gray-100 h-full flex flex-col overflow-hidden relative">
+                      
+                      {/* COVER IMAGE */}
+                      <div className="h-64 overflow-hidden relative bg-gray-100">
+                          <img 
+                            src={book.cover_url || "https://placehold.co/400x600?text=No+Cover"} 
+                            alt={book.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                          {/* Dark overlay on hover */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
                       </div>
-                      <div className="p-5">
-                        <h3 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-tacsfon-green transition-colors">{book.title}</h3>
-                        <p className="text-xs text-gray-400 font-medium">{book.author}</p>
+
+                      <div className="p-5 flex flex-col flex-grow">
+                        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1 line-clamp-2 group-hover:text-tacsfon-green transition-colors">
+                          {book.title}
+                        </h3>
+                        <p className="text-xs text-gray-400 font-medium mb-4">{book.author}</p>
+                        
+                        {/* Status Badge */}
+                        <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
+                           <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${book.available_copies > 0 ? 'bg-green-50 text-tacsfon-green' : 'bg-red-50 text-red-500'}`}>
+                              {book.available_copies > 0 ? 'Available' : 'Taken'}
+                           </span>
+                        </div>
                       </div>
                     </div>
                   </Link>
