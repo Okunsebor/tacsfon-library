@@ -1,13 +1,22 @@
-'use client'; 
+'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Sparkles, BookOpen } from 'lucide-react';
 
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [student, setStudent] = useState<any>(null);
 
   useEffect(() => {
+    // 1. Check if a student is logged in (from Onboarding)
+    const savedStudent = localStorage.getItem('tacsfonStudent');
+    if (savedStudent) {
+      setStudent(JSON.parse(savedStudent));
+    }
+
+    // 2. Fetch Books
     async function fetchBooks() {
       const { data, error } = await supabase.from('books').select('*');
       if (error) console.error(error);
@@ -17,43 +26,115 @@ export default function Home() {
     fetchBooks();
   }, []);
 
-  // Group books by Category
   const categories = [...new Set(books.map(b => b.category || 'Uncategorized'))];
 
-  if (loading) return <div className="text-center p-10">Loading Collections...</div>;
+  // FILTER LOGIC: Find books that match student interests
+  const recommendedBooks = student 
+    ? books.filter(b => student.interests.includes(b.category) || student.department === b.category)
+    : [];
+
+  if (loading) return (
+    <div className="max-w-7xl mx-auto px-4 pt-12 space-y-8 animate-pulse">
+      <div className="h-96 bg-gray-200 rounded-2xl mx-auto mb-16"></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        {[1,2,3,4].map(i => <div key={i} className="h-64 bg-gray-100 rounded-2xl"></div>)}
+      </div>
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
       
-      {/* Header */}
-      <div className="bg-blue-900 text-white p-10 text-center">
-        <h1 className="text-4xl font-bold mb-2">TACSFON Library</h1>
-        <p className="text-blue-200">Explore our spiritual and academic collections</p>
+      {/* HERO SECTION */}
+      <div className="relative bg-gray-900 h-[500px] flex items-center overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('/library-hero.jpg')" }}></div>
+        {/* Neon Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-transparent to-gray-900"></div>
+
+        <div className="relative max-w-7xl mx-auto px-4 text-center animate-fade-in z-10">
+          {student ? (
+            // PERSONALIZED WELCOME
+            <>
+              <span className="inline-block px-4 py-1 rounded-full bg-tacsfon-neonGreen/20 text-tacsfon-neonGreen border border-tacsfon-neonGreen font-bold text-xs uppercase mb-4 tracking-widest shadow-[0_0_10px_#00FF88]">
+                 Verified Student Access
+              </span>
+              <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-white tracking-tight">
+                Welcome Back, <span className="text-tacsfon-neonOrange">{student.full_name}</span>
+              </h1>
+              <p className="text-gray-300 text-xl font-light max-w-2xl mx-auto mb-8">
+                We've curated resources for <strong>{student.department}</strong> and your interests.
+              </p>
+            </>
+          ) : (
+             // ... Guest Welcome (Keep as is) ...
+            <>
+              <span className="text-tacsfon-orange font-bold tracking-widest text-sm uppercase mb-4 block">Official Archive</span>
+              <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-white tracking-tight">
+                Welcome to <span className="text-tacsfon-orange">TACSFON</span> Library
+              </h1>
+              <p className="text-gray-200 text-xl font-light max-w-2xl mx-auto mb-10">
+                Bridging the gap between spiritual depth and academic excellence.
+              </p>
+              <Link href="/student-login" className="inline-block bg-tacsfon-orange hover:bg-orange-600 text-white font-bold text-lg px-8 py-4 rounded-full transition-all hover:scale-105 shadow-lg">
+                Student Login
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 mt-8 space-y-12">
+      <div className="max-w-7xl mx-auto px-4 py-16 space-y-20">
+        
+        {/* 1. RECOMMENDED SECTION (Only if Student is logged in) */}
+        {student && recommendedBooks.length > 0 && (
+          <section className="animate-slide-up">
+            <div className="flex items-center gap-3 mb-8">
+              <Sparkles className="text-tacsfon-neonOrange" size={28} />
+              <h2 className="text-3xl font-bold text-gray-800">Top Picks for You</h2>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
+              {recommendedBooks.map((book) => (
+                <Link href={`/book/${book.id}`} key={book.id} className="group block h-full">
+                  <div className="bg-white rounded-2xl transition-all hover:-translate-y-2 hover:shadow-xl hover:shadow-tacsfon-neonGreen/20 border-2 border-transparent hover:border-tacsfon-neonGreen/50 h-full flex flex-col overflow-hidden relative">
+                    <div className="bg-gray-100 h-52 flex items-center justify-center text-gray-400 relative group-hover:bg-tacsfon-neonGreen/10 transition-colors">
+                       <span className="text-6xl group-hover:scale-110 transition-transform">📘</span>
+                       <div className="absolute top-2 right-2 bg-tacsfon-neonOrange text-white text-[10px] font-bold px-2 py-1 rounded-full">MATCH</div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-bold text-gray-900 mb-1 line-clamp-2">{book.title}</h3>
+                      <p className="text-sm text-gray-500">{book.author}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 2. ALL COLLECTIONS */}
         {categories.map((category) => (
           <section key={category}>
-            <div className="flex items-center justify-between mb-4 border-b pb-2 border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-800">{category} Collection</h2>
+            <div className="flex items-center gap-4 mb-8 border-b border-gray-200 pb-4">
+              <h2 className="text-2xl font-bold text-gray-800">{category}</h2>
+              <div className="flex-1"></div>
+              <Link href="#" className="text-sm font-bold text-tacsfon-green hover:underline flex items-center gap-1">
+                View All <BookOpen size={16}/>
+              </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
               {books
                 .filter(book => (book.category || 'Uncategorized') === category)
                 .map((book) => (
-                  <Link href={`/book/${book.id}`} key={book.id} className="group">
-                    <div className="bg-white rounded-lg shadow-sm hover:shadow-xl transition duration-300 overflow-hidden border border-gray-100 h-full flex flex-col">
-                      <div className="h-48 bg-gray-200 group-hover:bg-blue-50 transition flex items-center justify-center text-gray-400">
-                         <span className="text-4xl">📖</span>
+                  <Link href={`/book/${book.id}`} key={book.id} className="group block h-full">
+                    <div className="bg-white rounded-2xl transition-all hover:-translate-y-2 hover:shadow-lg border border-gray-100 h-full flex flex-col overflow-hidden">
+                      <div className="bg-gray-50 h-48 flex items-center justify-center text-gray-300 relative group-hover:bg-tacsfon-green/5 transition-colors">
+                         <span className="text-5xl group-hover:scale-105 transition-transform">📘</span>
                       </div>
-                      
-                      <div className="p-4 flex flex-col flex-grow">
-                        <h3 className="font-bold text-gray-900 line-clamp-1">{book.title}</h3>
-                        <p className="text-sm text-gray-500 mb-2">{book.author}</p>
-                        <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded w-fit">
-                             {book.available_copies} Left
-                        </span>
+                      <div className="p-5">
+                        <h3 className="font-bold text-gray-900 text-sm mb-1 group-hover:text-tacsfon-green transition-colors">{book.title}</h3>
+                        <p className="text-xs text-gray-400 font-medium">{book.author}</p>
                       </div>
                     </div>
                   </Link>
