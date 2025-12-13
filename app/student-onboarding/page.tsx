@@ -1,8 +1,11 @@
 'use client';
-import { useState, useEffect } from 'react'; // Added useEffect
-import { useRouter, useSearchParams } from 'next/navigation'; // Added useSearchParams
+
+// 1. Add Suspense to imports
+import { useState, Suspense } from 'react'; 
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Book, GraduationCap, School, ChevronRight, Edit3 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+
 // OFFICIAL FUTMINNA DATA (2025)
 const FACULTIES = {
   "SAAT": {
@@ -43,32 +46,32 @@ const FACULTIES = {
   }
 };
 
-export default function StudentOnboarding() {
+// 2. CREATE A SEPARATE COMPONENT FOR THE CONTENT
+function OnboardingContent() {
   const router = useRouter();
-  const searchParams = useSearchParams(); // Get data from Login Page
+  const searchParams = useSearchParams(); 
   
   const [step, setStep] = useState(1);
   const [customDept, setCustomDept] = useState('');
   
-  // Pre-fill Name and Email from the previous Login Screen
   const [formData, setFormData] = useState({
     faculty: '',
     department: '',
     level: '',
     interests: [] as string[],
-    full_name: searchParams.get('name') || '',  // Auto-fill
-    email: searchParams.get('email') || ''      // Auto-fill
+    full_name: searchParams.get('name') || '',  
+    email: searchParams.get('email') || ''      
   });
+
   const handleDeptSelect = (dept: string) => {
     if (dept === 'Other') {
       setFormData({ ...formData, department: 'Other' });
     } else {
       setFormData({ ...formData, department: dept });
-      setCustomDept(''); // Clear custom if they switch back
+      setCustomDept(''); 
     }
   };
 
-  // REPLACE handleFinish with this version:
   const handleFinish = async () => {
     const finalDept = formData.department === 'Other' ? customDept : formData.department;
     
@@ -77,16 +80,15 @@ export default function StudentOnboarding() {
       department: finalDept,
       level: formData.level,
       interests: formData.interests,
-      full_name: formData.full_name, // Saving Real Name
-      email: formData.email,         // Saving Real Email
-      matric_number: `STU-${Math.floor(Math.random() * 10000)}` // Still random for now
+      full_name: formData.full_name, 
+      email: formData.email,         
+      matric_number: `STU-${Math.floor(Math.random() * 10000)}` 
     };
 
     try {
       const { error } = await supabase.from('student_profiles').insert([profileData]);
       if (error) throw error;
 
-      // Save to Browser Memory
       localStorage.setItem('tacsfonStudent', JSON.stringify(profileData));
 
       alert("Profile Created Successfully!");
@@ -107,14 +109,11 @@ export default function StudentOnboarding() {
     }));
   };
 
-  // Get current departments based on selected faculty
   // @ts-ignore
   const currentDepts = formData.faculty ? [...FACULTIES[formData.faculty].depts, "Other"] : [];
 
   return (
-    <main className="min-h-screen bg-gray-900 flex items-center justify-center p-4 text-white">
-      <div className="max-w-3xl w-full">
-        
+    <div className="max-w-3xl w-full">
         {/* NEON PROGRESS BAR */}
         <div className="flex items-center justify-between mb-12 px-4">
             {[1, 2, 3, 4].map((num) => (
@@ -127,7 +126,7 @@ export default function StudentOnboarding() {
             ))}
         </div>
 
-        {/* STEP 1: FACULTY (SCHOOL) */}
+        {/* STEP 1: FACULTY */}
         {step === 1 && (
             <div className="animate-fade-in space-y-8">
                 <div className="text-center">
@@ -140,10 +139,12 @@ export default function StudentOnboarding() {
                     {Object.entries(FACULTIES).map(([key, data]) => (
                         <button 
                             key={key}
+                            // @ts-ignore
                             onClick={() => setFormData({...formData, faculty: key, department: ''})}
                             className={`p-5 rounded-xl border text-left transition-all duration-300 group hover:scale-[1.02] ${formData.faculty === key ? 'border-tacsfon-neonGreen bg-tacsfon-neonGreen/10 text-tacsfon-neonGreen shadow-[0_0_20px_rgba(0,255,136,0.2)]' : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-500'}`}
                         >
                             <span className="font-bold text-lg block mb-1">{key}</span>
+                            {/* @ts-ignore */}
                             <span className="text-sm opacity-80 font-light">{data.name}</span>
                         </button>
                     ))}
@@ -166,7 +167,7 @@ export default function StudentOnboarding() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto custom-scrollbar p-2">
-                    {currentDepts.map((dept) => (
+                    {currentDepts.map((dept: any) => (
                         <button 
                             key={dept}
                             onClick={() => handleDeptSelect(dept)}
@@ -177,7 +178,6 @@ export default function StudentOnboarding() {
                     ))}
                 </div>
 
-                {/* "Other" Input Field (Only shows if 'Other' is selected) */}
                 {formData.department === 'Other' && (
                     <div className="animate-fade-in">
                         <label className="text-sm font-bold text-tacsfon-neonOrange mb-2 block">Enter your Department Name</label>
@@ -261,8 +261,17 @@ export default function StudentOnboarding() {
                 </div>
             </div>
         )}
+    </div>
+  );
+}
 
-      </div>
+// 3. THIS IS THE MAIN EXPORT THAT WRAPS THE CONTENT IN SUSPENSE
+export default function StudentOnboarding() {
+  return (
+    <main className="min-h-screen bg-gray-900 flex items-center justify-center p-4 text-white">
+      <Suspense fallback={<div className="text-white text-center">Loading onboarding...</div>}>
+        <OnboardingContent />
+      </Suspense>
     </main>
   );
 }
