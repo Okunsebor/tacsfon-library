@@ -1,29 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, LayoutGrid, Menu, X, LayoutDashboard } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, LayoutGrid, Menu, X } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { useEffect } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false); // State for Mobile Menu
-  const [isAdmin, setIsAdmin] = useState(false);
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
-
-  // Check Admin Status
-  useEffect(() => {
-    async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) setIsAdmin(true);
-    }
-    checkSession();
-  }, []);
   
   const isActive = (path: string) => pathname === path ? "text-tacsfon-green font-bold" : "text-gray-600 hover:text-tacsfon-green";
 
@@ -80,11 +68,6 @@ export default function Navbar() {
 
           {/* 3. DESKTOP BUTTONS (Hidden on Mobile) */}
           <div className="hidden lg:flex items-center gap-3">
-            {isAdmin && (
-              <Link href="/admin" className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-900 text-white hover:bg-black transition-all shadow-md">
-                <LayoutDashboard size={16} /> <span className="text-sm font-bold">Dashboard</span>
-              </Link>
-            )}
             <Link href="/student-login" className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-tacsfon-orange text-white hover:bg-orange-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
               <User size={18} /> <span className="text-sm font-bold">Student Sign In</span>
             </Link>
@@ -134,11 +117,6 @@ export default function Navbar() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 gap-3 pt-2">
-                {isAdmin && (
-                  <Link href="/admin" className="w-full flex justify-center items-center gap-2 py-4 rounded-xl bg-gray-900 text-white font-bold">
-                    <LayoutDashboard size={18} /> Admin Dashboard
-                  </Link>
-                )}
                 <Link href="/student-login" className="w-full flex justify-center items-center gap-2 py-4 rounded-xl bg-tacsfon-orange text-white font-bold shadow-lg">
                    <User size={18} /> Student Sign In
                 </Link>
