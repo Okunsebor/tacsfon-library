@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, LayoutGrid, Menu, X } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, LayoutGrid, Menu, X, BookOpen } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
@@ -20,7 +20,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
-          {/* 1. LOGO (Visible on all screens) */}
+          {/* 1. LOGO */}
           <Link href="/" className="flex items-center gap-3 group z-50">
             <img src="/tacsfon-logo.png" alt="TACSFON Logo" className="h-10 md:h-12 w-auto object-contain" />
             <div className="block leading-tight">
@@ -29,9 +29,16 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* 2. DESKTOP MENU (Hidden on Mobile) */}
+          {/* 2. DESKTOP MENU */}
           <div className="hidden lg:flex items-center gap-8">
             <Link href="/" className={`text-sm font-medium transition-colors ${isActive('/')}`}>Home</Link>
+            
+            {/* NEW: ACADEMIC HUB LINK */}
+            <Link href="/resources" className={`flex items-center gap-2 text-sm font-medium transition-colors ${isActive('/resources')}`}>
+                <BookOpen size={16} className={pathname === '/resources' ? "text-tacsfon-green" : "text-gray-400"} /> 
+                Academic Hub
+            </Link>
+
             <Link href="/media" className={`text-sm font-medium transition-colors ${isActive('/media')}`}>Media</Link>
             <Link href="/about" className={`text-sm font-medium transition-colors ${isActive('/about')}`}>About Us</Link>
             
@@ -47,8 +54,8 @@ export default function Navbar() {
                                 <LayoutGrid size={18} />
                             </div>
                             <div>
-                                <h4 className="text-sm font-bold text-gray-800">Student Portal</h4>
-                                <p className="text-[10px] text-gray-500">Browse Books</p>
+                                <h4 className="text-sm font-bold text-gray-800">Browse Books</h4>
+                                <p className="text-[10px] text-gray-500">General Library</p>
                             </div>
                         </Link>
                         <Link href="/login" className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50 transition-colors group/item mt-1">
@@ -66,14 +73,14 @@ export default function Navbar() {
             <Link href="/contact" className={`text-sm font-medium transition-colors ${isActive('/contact')}`}>Contact</Link>
           </div>
 
-          {/* 3. DESKTOP BUTTONS (Hidden on Mobile) */}
+          {/* 3. DESKTOP BUTTONS */}
           <div className="hidden lg:flex items-center gap-3">
             <Link href="/student-login" className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-tacsfon-orange text-white hover:bg-orange-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
               <User size={18} /> <span className="text-sm font-bold">Student Sign In</span>
             </Link>
           </div>
 
-          {/* 4. MOBILE MENU BUTTON (Visible ONLY on Mobile) */}
+          {/* 4. MOBILE MENU BUTTON */}
           <button 
             onClick={() => setIsOpen(!isOpen)} 
             className="lg:hidden p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
@@ -83,7 +90,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* 5. MOBILE MENU DROPDOWN (Shows when isOpen is true) */}
+      {/* 5. MOBILE MENU DROPDOWN */}
       {isOpen && (
         <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-2xl animate-fade-in z-40 max-h-[calc(100vh-80px)] overflow-y-auto">
           <div className="p-4 space-y-2">
@@ -92,6 +99,12 @@ export default function Navbar() {
             <Link href="/" className={`block p-4 rounded-xl text-lg font-medium ${isActive('/') ? 'bg-green-50 text-tacsfon-green' : 'text-gray-700 hover:bg-gray-50'}`}>
               Home
             </Link>
+            
+            {/* NEW: MOBILE ACADEMIC LINK */}
+            <Link href="/resources" className={`block p-4 rounded-xl text-lg font-medium ${isActive('/resources') ? 'bg-green-50 text-tacsfon-green' : 'text-gray-700 hover:bg-gray-50'}`}>
+              Academic Hub
+            </Link>
+
             <Link href="/media" className={`block p-4 rounded-xl text-lg font-medium ${isActive('/media') ? 'bg-green-50 text-tacsfon-green' : 'text-gray-700 hover:bg-gray-50'}`}>
               Media & Sermons
             </Link>
@@ -107,7 +120,7 @@ export default function Navbar() {
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Portals</p>
                 <Link href="/#collections" className="flex items-center gap-3 p-3 rounded-xl bg-white mb-2 shadow-sm">
                     <div className="w-8 h-8 rounded-full bg-orange-100 text-tacsfon-orange flex items-center justify-center"><LayoutGrid size={16} /></div>
-                    <span className="font-bold text-gray-700">Student Portal</span>
+                    <span className="font-bold text-gray-700">Browse Books</span>
                 </Link>
                 <Link href="/login" className="flex items-center gap-3 p-3 rounded-xl bg-white shadow-sm">
                     <div className="w-8 h-8 rounded-full bg-green-100 text-tacsfon-green flex items-center justify-center"><ShieldCheck size={16} /></div>

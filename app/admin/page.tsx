@@ -1,175 +1,265 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { CheckCircle, Book, User, Clock, Edit, Search, Trash2, Globe } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  MessageSquare, 
+  BookOpen, 
+  Globe, 
+  UploadCloud, 
+  Folder, 
+  PlusCircle, 
+  Menu, 
+  X, 
+  Search, 
+  Trash2, 
+  Edit,
+  User,
+  LogOut,
+  ChevronRight
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function LibrarianDashboard() {
+export default function AdminLayout() {
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'inventory' | 'inbox'
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Data States
   const [requests, setRequests] = useState<any[]>([]);
   const [books, setBooks] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('requests'); 
-  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState<any[]>([]); // For Contact Inbox
   const router = useRouter();
 
+  // 1. FETCH ALL DATA
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login'); 
-        return;
-      }
-      fetchData();
+      if (!session) { router.push('/login'); return; }
+      
+      await fetchData();
     }
     init();
   }, [router]);
 
   async function fetchData() {
-    // Get Pending Requests
-    const { data: reqs } = await supabase.from('borrow_requests').select('*').eq('status', 'Pending').order('request_date', { ascending: false });
-    // Get All Books
-    const { data: allBooks } = await supabase.from('books').select('*').order('title', { ascending: true });
-
+    setLoading(true);
+    // Fetch Borrow Requests
+    const { data: reqs } = await supabase.from('borrow_requests').select('*').order('request_date', { ascending: false });
     setRequests(reqs || []);
+
+    // Fetch Books
+    const { data: allBooks } = await supabase.from('books').select('*').order('title', { ascending: true });
     setBooks(allBooks || []);
+
+    // Fetch Messages (The Missing Inbox)
+    const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
+    setMessages(msgs || []);
+    
     setLoading(false);
   }
 
-  // --- NEW: DELETE FUNCTION ---
-  // --- NEW: STRONGER DELETE FUNCTION ---
-  const handleDelete = async (id: number, title: string) => {
-    const confirmDelete = window.confirm(`Are you sure you want to permanently delete "${title}"?`);
-    if (!confirmDelete) return;
-
-    // 1. First, delete any history in the 'loans' table (This fixes the error you saw)
+  // --- ACTIONS ---
+  const handleDeleteBook = async (id: number, title: string) => {
+    if (!window.confirm(`Permanently delete "${title}"?`)) return;
+    
+    // Cleanup linked data first
     await supabase.from('loans').delete().eq('book_id', id);
-
-    // 2. Also delete any 'borrow_requests'
     await supabase.from('borrow_requests').delete().eq('book_id', id);
-
-    // 3. NOW it is safe to delete the book
+    
     const { error } = await supabase.from('books').delete().eq('id', id);
-
-    if (error) {
-      alert("Failed to delete book: " + error.message);
-    } else {
-      // Remove from UI instantly without refreshing
-      setBooks(books.filter(book => book.id !== id));
+    if (error) alert("Error: " + error.message);
+    else {
+      setBooks(books.filter(b => b.id !== id));
       alert("Book deleted.");
     }
   };
 
-  const handleRequest = async (id: number, status: string, bookId: number) => {
+  const handleRequestAction = async (id: number, status: string, bookId: number) => {
     await supabase.from('borrow_requests').update({ status }).eq('id', id);
     if (status === 'Approved') {
-        const { data: book } = await supabase.from('books').select('available_copies').eq('id', bookId).single();
-        if (book) await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
+        const book = books.find(b => b.id === bookId);
+        if (book) {
+            await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
+        }
     }
-    fetchData(); 
+    fetchData(); // Refresh to show updates
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading Dashboard...</div>;
+  // --- NAVIGATION LINKS ---
+  const NavItem = ({ id, label, icon: Icon, link }: any) => {
+    // If it's a link (like Add Book), navigate. If it's a tab (like Inbox), switch view.
+    if (link) {
+      return (
+        <Link href={link} className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-xl transition-all mb-1">
+          <Icon size={20} /> <span className="font-medium">{label}</span>
+        </Link>
+      );
+    }
+    return (
+      <button 
+        onClick={() => { setActiveTab(id); setIsMobileMenuOpen(false); }}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1 ${activeTab === id ? 'bg-tacsfon-green text-white font-bold shadow-lg' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+      >
+        <Icon size={20} /> <span className="font-medium">{label}</span>
+      </button>
+    );
+  };
+
+  if (loading && !books.length) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Loading Admin Panel...</div>;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-100 flex">
+      
+      {/* 1. SIDEBAR (Desktop) & MOBILE MENU WRAPPER */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:block shadow-2xl`}>
         
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div>
-                <h1 className="text-3xl font-bold text-gray-800">Librarian Desk</h1>
-                <p className="text-gray-500">Manage students, books, and media.</p>
-            </div>
-            <div className="flex gap-3">
-                <Link href="/admin/import-books" className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md flex items-center gap-2">
-                    <span className="text-xl"><Globe size={20}/></span> Bulk Import
-                </Link>
-                <Link href="/admin/upload-media" className="bg-gray-800 text-white px-5 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-md flex items-center gap-2">
-                    <span className="text-tacsfon-neonGreen text-xl">+</span> Upload Media
-                </Link>
-                <Link href="/admin/add-book" className="bg-tacsfon-orange text-white px-5 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all shadow-md flex items-center gap-2">
-                    <span className="text-white text-xl">+</span> Add Book
-                </Link>
-            </div>
+        {/* Sidebar Header */}
+        <div className="h-20 flex items-center px-6 border-b border-gray-800">
+          <h1 className="text-xl font-bold text-tacsfon-neonGreen tracking-wider">LIBRARIAN<span className="text-white">DESK</span></h1>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-gray-400"><X /></button>
         </div>
 
-        {/* TABS */}
-        <div className="flex gap-4 mb-8 border-b border-gray-200 pb-1">
-            <button onClick={() => setActiveTab('requests')} className={`pb-3 px-4 font-bold text-lg ${activeTab === 'requests' ? 'text-tacsfon-green border-b-4 border-tacsfon-green' : 'text-gray-400'}`}>Borrow Requests ({requests.length})</button>
-            <button onClick={() => setActiveTab('books')} className={`pb-3 px-4 font-bold text-lg ${activeTab === 'books' ? 'text-tacsfon-green border-b-4 border-tacsfon-green' : 'text-gray-400'}`}>Inventory ({books.length})</button>
-        </div>
+        {/* Navigation */}
+        <div className="p-4 space-y-6 overflow-y-auto h-[calc(100vh-80px)]">
+          
+          <div>
+            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Overview</p>
+            <NavItem id="dashboard" label="Dashboard" icon={LayoutDashboard} />
+            <NavItem id="inventory" label="Book Inventory" icon={BookOpen} />
+            <NavItem id="inbox" label="Inbox Messages" icon={MessageSquare} />
+          </div>
 
-        {/* TAB 1: REQUESTS */}
-        {activeTab === 'requests' && (
-            <div className="space-y-4">
-                {requests.length === 0 ? <div className="text-center py-20 bg-white rounded-3xl text-gray-400">All caught up!</div> : 
+          <div>
+            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Actions</p>
+            <NavItem link="/admin/add-book" label="Add New Book" icon={PlusCircle} />
+            <NavItem link="/admin/import-books" label="Book Hunter (Import)" icon={Globe} />
+            <NavItem link="/admin/upload-media" label="Media Manager" icon={UploadCloud} />
+            <NavItem link="/admin/academic-hub" label="Academic Hub" icon={Folder} />
+          </div>
+
+          <div className="pt-8 border-t border-gray-800">
+             <button onClick={() => router.push('/')} className="flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 transition-colors w-full">
+                <LogOut size={20} /> <span>Exit Admin</span>
+             </button>
+          </div>
+
+        </div>
+      </aside>
+
+      {/* 2. MAIN CONTENT AREA */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        {/* Mobile Header */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between md:hidden shrink-0">
+           <span className="font-bold text-gray-800">Admin Panel</span>
+           <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-gray-100 rounded-lg"><Menu /></button>
+        </header>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          
+          {/* TAB: DASHBOARD (Requests) */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6 animate-fade-in">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Pending Requests</h2>
+                {requests.length === 0 ? (
+                    <div className="bg-white p-12 rounded-3xl text-center text-gray-400 border border-gray-100">
+                        <p>No pending borrow requests.</p>
+                    </div>
+                ) : (
                     requests.map(req => (
-                        <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
                             <div>
-                                <h3 className="font-bold">{req.book_title}</h3>
-                                <p className="text-sm text-gray-500">{req.student_name} • <span className="font-bold text-xs uppercase bg-gray-100 px-2 py-1 rounded">{req.request_type} Request</span></p>
+                                <h3 className="font-bold text-lg text-gray-800">{req.book_title}</h3>
+                                <p className="text-sm text-gray-500">{req.student_name} • <span className={`font-bold text-xs uppercase px-2 py-1 rounded ${req.request_type === 'digital' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{req.request_type} Request</span></p>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => handleRequest(req.id, 'Rejected', req.book_id)} className="px-4 py-2 border text-red-500 rounded-lg font-bold">Reject</button>
-                                <button onClick={() => handleRequest(req.id, 'Approved', req.book_id)} className="px-4 py-2 bg-tacsfon-green text-white rounded-lg font-bold">Approve</button>
+                                <button onClick={() => handleRequestAction(req.id, 'Rejected', req.book_id)} className="px-4 py-2 border border-red-200 text-red-500 rounded-xl font-bold hover:bg-red-50">Reject</button>
+                                <button onClick={() => handleRequestAction(req.id, 'Approved', req.book_id)} className="px-6 py-2 bg-tacsfon-green text-white rounded-xl font-bold shadow-md hover:bg-green-700">Approve</button>
                             </div>
                         </div>
-                ))}
+                    ))
+                )}
             </div>
-        )}
+          )}
 
-        {/* TAB 2: INVENTORY (Updated with Delete) */}
-        {activeTab === 'books' && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold"><tr><th className="p-6">Title</th><th className="p-6">Category</th><th className="p-6">Stock</th><th className="p-6 text-right">Actions</th></tr></thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {books.map(book => (
-                            <tr key={book.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="p-6 font-bold flex items-center gap-3">
-                                    <img src={book.cover_url || "https://placehold.co/50"} alt="" className="w-8 h-12 object-cover rounded shadow-sm" />
-                                    {book.title}
-                                </td>
-                                <td className="p-6 text-sm">{book.category}</td>
-                                <td className="p-6 font-bold">{book.available_copies}</td>
-                                <td className="p-6 text-right">
-                                    <div className="flex items-center justify-end gap-3">
-                                        
-                                        {/* EDIT BUTTON */}
-                                        <Link href={`/admin/edit-book/${book.id}`} className="text-gray-400 hover:text-blue-600 transition-colors" title="Edit Book">
-                                            <Edit size={18} />
-                                        </Link>
-
-                                        {/* NEW: DELETE BUTTON */}
-                                        <button 
-                                            onClick={() => handleDelete(book.id, book.title)}
-                                            className="text-gray-400 hover:text-red-500 transition-colors"
-                                            title="Delete Book"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-
-                                        {/* FIND PDF HELPER (Shows if no digital link exists) */}
-                                        {!book.pdf_url && !book.ia_id && (
-                                            <a 
-                                                href={`https://www.google.com/search?q=filetype:pdf+${encodeURIComponent(book.title)}`} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-[10px] font-bold bg-red-50 text-red-500 px-2 py-1 rounded-md border border-red-100 hover:bg-red-100"
-                                                title="Search Google for this PDF"
-                                            >
-                                                <Search size={10} /> Find PDF
-                                            </a>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
+          {/* TAB: INBOX (Restored) */}
+          {activeTab === 'inbox' && (
+             <div className="space-y-6 animate-fade-in">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Inbox Messages</h2>
+                {messages.length === 0 ? (
+                    <div className="bg-white p-12 rounded-3xl text-center text-gray-400 border border-gray-100">
+                        <MessageSquare size={48} className="mx-auto mb-4 opacity-20"/>
+                        <p>No messages received yet.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {messages.map(msg => (
+                            <div key={msg.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="font-bold text-gray-900">{msg.name}</h3>
+                                    <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleDateString()}</span>
+                                </div>
+                                <p className="text-sm text-tacsfon-green font-medium mb-3">{msg.email}</p>
+                                <p className="text-gray-600 bg-gray-50 p-4 rounded-xl text-sm">{msg.message}</p>
+                            </div>
                         ))}
-                    </tbody>
-                </table>
-            </div>
-        )}
-      </div>
-    </main>
+                    </div>
+                )}
+             </div>
+          )}
+
+          {/* TAB: INVENTORY */}
+          {activeTab === 'inventory' && (
+             <div className="animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Book Inventory ({books.length})</h2>
+                    <Link href="/admin/add-book" className="bg-tacsfon-orange text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-orange-600 flex items-center gap-2">
+                        <PlusCircle size={16}/> Add Book
+                    </Link>
+                </div>
+                
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold"><tr><th className="p-6">Book</th><th className="p-6">Category</th><th className="p-6">Stock</th><th className="p-6 text-right">Actions</th></tr></thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {books.map(book => (
+                                    <tr key={book.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="p-6 font-bold flex items-center gap-3 min-w-[300px]">
+                                            <div className="w-10 h-14 bg-gray-200 rounded overflow-hidden shrink-0">
+                                                {book.cover_url && <img src={book.cover_url} className="w-full h-full object-cover"/>}
+                                            </div>
+                                            <div>
+                                                <div className="text-gray-900 line-clamp-1">{book.title}</div>
+                                                <div className="text-xs text-gray-400 font-normal">{book.author}</div>
+                                            </div>
+                                        </td>
+                                        <td className="p-6 text-sm text-gray-500">{book.category}</td>
+                                        <td className="p-6 font-bold text-gray-800">{book.available_copies}</td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* PDF Helper */}
+                                                {!book.pdf_url && !book.ia_id && (
+                                                    <a href={`https://www.google.com/search?q=filetype:pdf+${encodeURIComponent(book.title)}`} target="_blank" className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100" title="Find PDF"><Search size={16}/></a>
+                                                )}
+                                                <Link href={`/admin/edit-book/${book.id}`} className="p-2 text-gray-400 hover:text-blue-600 transition-colors"><Edit size={18} /></Link>
+                                                <button onClick={() => handleDeleteBook(book.id, book.title)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+             </div>
+          )}
+
+        </div>
+      </main>
+    </div>
   );
 }
