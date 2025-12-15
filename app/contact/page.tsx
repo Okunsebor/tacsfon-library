@@ -1,14 +1,15 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
+import Navbar from '@/app/components/Navbar';
+import { MapPin, Phone, Mail, Send, User, Type, MessageSquare, Smartphone } from 'lucide-react';
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     subject: '',
     message: ''
   });
@@ -17,170 +18,182 @@ export default function Contact() {
     e.preventDefault();
     setLoading(true);
 
-    // Send data to Supabase
-    const { error } = await supabase
-      .from('contact_messages')
-      .insert([formData]);
+    // CORRECTED: Sending to your existing 'contact_messages' table
+    const { error } = await supabase.from('contact_messages').insert([formData]);
 
     if (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      alert('Error sending message: ' + error.message);
     } else {
-      setSuccess(true);
-      setFormData({ name: '', email: '', subject: '', message: '' }); // Clear form
+      alert('Message sent successfully! We will get back to you soon.');
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' }); // Reset form
     }
     setLoading(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   return (
-    <main className="min-h-screen bg-gray-50 py-20 px-4">
-      
-      {/* HEADER */}
-      <div className="text-center max-w-3xl mx-auto mb-16 animate-fade-in">
-        <span className="text-tacsfon-orange font-bold tracking-widest text-xs uppercase mb-3 block">
-          Get in Touch
-        </span>
-        <h1 className="text-4xl font-extrabold text-tacsfon-green mb-4">
-          We'd Love to Hear from You
-        </h1>
-        <p className="text-gray-500 text-lg">
-          Have a question about a book, a resource request, or just want to say hello? Send us a message and our librarians will get back to you.
-        </p>
-      </div>
+    <main className="min-h-screen bg-gray-50 font-sans">
+      <Navbar />
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 animate-slide-up">
-        
-        {/* LEFT COLUMN: CONTACT INFO (Green Card) */}
-        <div className="bg-tacsfon-green text-white p-10 rounded-3xl shadow-xl flex flex-col justify-between relative overflow-hidden">
-          {/* Decorative Circle */}
-          <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          
-          <div>
-            <h2 className="text-2xl font-bold mb-8">Contact Information</h2>
-            <div className="space-y-8">
-              <div className="flex items-start gap-4">
-                <MapPin className="mt-1 text-tacsfon-orange" />
-                <p className="leading-relaxed text-green-100">
-                  Federal University of Technology, Minna<br />
-                  Gidan Kwano Campus<br />
-                  Niger State, Nigeria
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Phone className="text-tacsfon-orange" />
-                <p className="text-green-100">+234 800 123 4567</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Mail className="text-tacsfon-orange" />
-                <p className="text-green-100">library@tacsfon.org</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12">
-            <p className="text-sm text-green-200 uppercase tracking-widest font-semibold mb-4">Follow Us</p>
-            <div className="flex gap-4">
-              {/* Social Placeholders */}
-              {[1,2,3].map(i => (
-                <div key={i} className="w-10 h-10 rounded-full bg-white/20 hover:bg-tacsfon-orange transition-colors cursor-pointer flex items-center justify-center">
-                  <span className="text-xs">social</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* HERO SECTION */}
+      <section className="bg-tacsfon-dark text-white py-20 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('/pattern.png')] opacity-10"></div>
+        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Contact Us</h1>
+            <p className="text-gray-300 max-w-2xl mx-auto text-lg">
+                Have questions about the library, resources, or the fellowship? We are here to help.
+            </p>
         </div>
+      </section>
 
-        {/* RIGHT COLUMN: THE FORM (White Card) */}
-        <div className="md:col-span-2 bg-white p-10 rounded-3xl shadow-lg border border-gray-100">
-          {success ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-10 space-y-4 animate-fade-in">
-              <CheckCircle size={64} className="text-tacsfon-green" />
-              <h3 className="text-2xl font-bold text-gray-800">Message Sent!</h3>
-              <p className="text-gray-500">Thank you for reaching out. Our librarian will review your message shortly.</p>
-              <button 
-                onClick={() => setSuccess(false)}
-                className="mt-4 text-tacsfon-orange font-bold hover:underline"
-              >
-                Send another message
-              </button>
+      {/* MAIN CONTENT GRID */}
+      <section className="max-w-7xl mx-auto px-6 py-16 -mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            {/* LEFT SIDE: CONTACT INFO CARDS */}
+            <div className="space-y-6">
+                
+                {/* Phone Card */}
+                <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex items-start gap-5 hover:-translate-y-1 transition-transform">
+                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-tacsfon-green shrink-0">
+                        <Phone size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900 text-lg mb-1">Call Us</h3>
+                        <p className="text-gray-500 text-sm mb-2">Mon-Fri from 8am to 5pm.</p>
+                        <a href="tel:+2347085095509" className="text-tacsfon-green font-bold text-lg hover:underline">+234 708 509 5509</a>
+                    </div>
+                </div>
+
+                {/* Email Card */}
+                <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex items-start gap-5 hover:-translate-y-1 transition-transform">
+                    <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-tacsfon-orange shrink-0">
+                        <Mail size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900 text-lg mb-1">Email Us</h3>
+                        <p className="text-gray-500 text-sm mb-2">Our friendly team is here to help.</p>
+                        <a href="mailto:tacsfonnational@gmail.com" className="text-tacsfon-orange font-bold text-lg hover:underline block truncate max-w-[200px]">tacsfonnational@gmail.com</a>
+                    </div>
+                </div>
+
+                {/* Address Card */}
+                <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex items-start gap-5 hover:-translate-y-1 transition-transform">
+                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
+                        <MapPin size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900 text-lg mb-1">Visit Us</h3>
+                        <p className="text-gray-500 text-sm mb-2">Come say hello at our office.</p>
+                        <p className="text-gray-800 font-bold">Lagos, Nigeria</p>
+                    </div>
+                </div>
+
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">Full Name</label>
-                  <input 
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    type="text" 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-tacsfon-green focus:ring-2 focus:ring-green-100 outline-none transition-all"
-                    placeholder="Student Name"
-                  />
+
+            {/* RIGHT SIDE: THE "GET IN TOUCH" FORM */}
+            <div className="lg:col-span-2 bg-white rounded-[2rem] shadow-xl border border-gray-100 p-8 md:p-12">
+                <div className="mb-8">
+                    <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Interested in discussing?</h2>
+                    <p className="text-gray-500">Fill out the form below and we'll get back to you shortly.</p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700">Email Address</label>
-                  <input 
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    type="email" 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-tacsfon-green focus:ring-2 focus:ring-green-100 outline-none transition-all"
-                    placeholder="student@futminna.edu.ng"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Subject</label>
-                <input 
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  type="text" 
-                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-tacsfon-green focus:ring-2 focus:ring-green-100 outline-none transition-all"
-                  placeholder="Requesting a book..."
-                />
-              </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Name */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Your Name <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input 
+                                    type="text" required 
+                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium"
+                                    placeholder="John Doe"
+                                    value={formData.name}
+                                    onChange={e => setFormData({...formData, name: e.target.value})}
+                                />
+                            </div>
+                        </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Message</label>
-                <textarea 
-                  name="message"
-                  required
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows={6}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-tacsfon-green focus:ring-2 focus:ring-green-100 outline-none transition-all resize-none"
-                  placeholder="How can we help you today?"
-                ></textarea>
-              </div>
+                        {/* Email */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Email Address <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input 
+                                    type="email" required 
+                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium"
+                                    placeholder="you@example.com"
+                                    value={formData.email}
+                                    onChange={e => setFormData({...formData, email: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-              <div className="pt-4">
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full bg-tacsfon-orange hover:bg-orange-600 text-white font-bold text-lg py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-orange-500/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      Send Message <Send size={20} />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Subject */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Subject <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <Type className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input 
+                                    type="text" required 
+                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium"
+                                    placeholder="Inquiry about..."
+                                    value={formData.subject}
+                                    onChange={e => setFormData({...formData, subject: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                         {/* Phone */}
+                         <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Phone Number</label>
+                            <div className="relative">
+                                <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input 
+                                    type="tel" 
+                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium"
+                                    placeholder="+234..."
+                                    value={formData.phone}
+                                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Message */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Message <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <MessageSquare className="absolute left-4 top-5 text-gray-400" size={18} />
+                            <textarea 
+                                required 
+                                className="w-full pl-11 pr-4 py-4 h-40 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium resize-none"
+                                placeholder="How can we help you?"
+                                value={formData.message}
+                                onChange={e => setFormData({...formData, message: e.target.value})}
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button 
+                        type="submit" 
+                        disabled={loading}
+                        className="bg-tacsfon-green text-white font-bold text-lg px-10 py-4 rounded-xl shadow-lg shadow-green-900/20 hover:bg-[#00502b] hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2"
+                    >
+                        {loading ? 'Sending...' : <>Send Message <Send size={20}/></>}
+                    </button>
+
+                </form>
+            </div>
+
         </div>
-      </div>
+      </section>
+
     </main>
   );
 }

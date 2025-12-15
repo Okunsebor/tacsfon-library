@@ -1,12 +1,18 @@
 import './globals.css';
 import Navbar from '@/app/components/Navbar';
-import { Inter } from 'next/font/google'; 
+import Footer from '@/app/components/Footer'; // We will create this next
+import { Plus_Jakarta_Sans } from 'next/font/google'; // Premium Font Upgrade
 
-const inter = Inter({ subsets: ['latin'] });
+// Configure the Professional Font
+const jakarta = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jakarta', 
+});
 
 export const metadata = {
-  title: 'TACSFON Library',
-  description: 'The academic and spiritual resource center.',
+  title: 'TACSFON National Library',
+  description: 'The academic and spiritual resource center for the fellowship.',
 };
 
 export default function RootLayout({
@@ -15,19 +21,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-50 text-gray-900`}>
-        {/* Navbar sits at the top of every page */}
+    <html lang="en" className={jakarta.variable}>
+      <body className="font-sans bg-gray-50 text-gray-900 antialiased selection:bg-[#006838] selection:text-white">
+        {/* Navbar sits at the top */}
         <Navbar />
         
         {/* Main Content */}
         {children}
         
-        {/* Simple Footer */}
-        <footer className="bg-white border-t mt-20 py-10 text-center text-gray-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} TACSFON Library System.</p>
-          <p>Excellence in Spirit & Academics.</p>
-        </footer>
+        {/* The Professional Footer */}
+        <Footer />
       </body>
     </html>
   );
