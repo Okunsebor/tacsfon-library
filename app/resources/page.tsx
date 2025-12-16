@@ -88,14 +88,14 @@ export default function AcademicResources() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-20">
+    <main className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-28">
        
        {/* HEADER */}
-       <div className="bg-gray-900 py-12 px-6 rounded-b-[3rem] shadow-xl relative overflow-hidden">
+       <div className="bg-gray-900 py-8 px-4 md:py-12 md:px-6 rounded-b-[2rem] md:rounded-b-[3rem] shadow-xl relative overflow-hidden">
           <div className="max-w-4xl mx-auto flex items-center justify-between text-white relative z-10">
              <div>
                 <p className="text-tacsfon-neonGreen font-bold uppercase tracking-widest text-xs mb-2">Academic Hub</p>
-                <h1 className="text-3xl md:text-4xl font-extrabold mb-1">Hi, {student?.full_name?.split(' ')[0]}</h1>
+                <h1 className="text-2xl md:text-5xl font-extrabold mb-2 leading-tight break-words">Hi, {student?.full_name?.split(' ')[0]}</h1>
                 <div className="inline-flex items-center gap-2 bg-gray-800 px-3 py-1 rounded-full text-xs font-bold border border-gray-700 mt-2">
                    <GraduationCap size={14} className="text-tacsfon-orange"/> {student?.faculty || 'No Faculty Set'}
                 </div>
