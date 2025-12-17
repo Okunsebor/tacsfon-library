@@ -81,9 +81,6 @@ export default function Home() {
             {/* Text Content */}
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto">
                <div className="animate-slide-up">
-                 <span className="inline-block py-1 px-3 rounded-full bg-tacsfon-green/20 border border-tacsfon-neonGreen text-tacsfon-neonGreen text-xs font-bold tracking-[0.2em] uppercase mb-4 backdrop-blur-md">
-                    National Library System
-                 </span>
                  <h1 className="text-4xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight drop-shadow-xl">
                     {slide.title}
                  </h1>
