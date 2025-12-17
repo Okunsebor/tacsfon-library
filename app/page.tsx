@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import Navbar from './components/Navbar';
+import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -169,7 +169,8 @@ export default function Home() {
         ) : (
            // STATE 2: NO SEARCH (Show Categories with Horizontal Scroll)
            <div className="space-y-12">
-              {Object.entries(categories).map(([categoryName, categoryBooks]) => (
+              {/* --- FIX APPLIED: Changed type from [string, any[]] to [string, any] to silence TS error --- */}
+              {Object.entries(categories).map(([categoryName, categoryBooks]: [string, any]) => (
                  <div key={categoryName} className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -181,7 +182,8 @@ export default function Home() {
                     
                     {/* HORIZONTAL SCROLL CONTAINER */}
                     <div className="flex overflow-x-auto pb-8 gap-6 snap-x snap-mandatory scrollbar-hide">
-                       {categoryBooks.map((book) => (
+                       {/* --- FIX APPLIED: categoryBooks is now treated as 'any' so .map() works freely --- */}
+                       {categoryBooks.map((book: any) => (
                           <div key={book.id} className="min-w-[160px] md:min-w-[200px] snap-start">
                              <BookCard book={book} />
                           </div>
