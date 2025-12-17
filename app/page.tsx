@@ -14,21 +14,21 @@ export default function Home() {
   const slides = [
     {
       id: 1,
-      image: "/slide1.jpg", // <--- Now points to your local image
+      image: "/slide1.jpg", 
       title: "WELCOME TO TACSFON LIBRARY",
       subtitle: "Empowering Academic Excellence & Spiritual Depth",
       cta: "Explore Resources"
     },
     {
       id: 2,
-      image: "/slide2.jpg", // <--- slide2
+      image: "/slide2.jpg", 
       title: "RAISING GIANTS",
       subtitle: "Access thousands of spiritual books and sermons meant to build your stature in Christ.",
       cta: "Browse Sermons"
     },
     {
       id: 3,
-      image: "/slide3.jpg", // <--- slide3
+      image: "/slide3.jpg", 
       title: "A COMMUNITY OF INTELLECTUALS",
       subtitle: "Join the movement of students who excel in both their studies and their walk with God.",
       cta: "Join the Family"
@@ -39,7 +39,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-    }, 6000); // Change slide every 6 seconds
+    }, 6000); 
     return () => clearInterval(timer);
   }, [slides.length]);
 
@@ -55,7 +55,16 @@ export default function Home() {
     fetchBooks();
   }, []);
 
+  // Filter for Search
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
+
+  // Group Books by Category
+  const categories = books.reduce((acc, book) => {
+    const category = book.category || 'Uncategorized';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(book);
+    return acc;
+  }, {} as Record<string, any[]>);
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
@@ -63,110 +72,75 @@ export default function Home() {
 
       {/* --- HERO SLIDESHOW SECTION --- */}
       <section className="relative h-[85vh] w-full overflow-hidden bg-gray-900 text-white">
-        
-        {/* Slides */}
         {slides.map((slide, index) => (
           <div 
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
           >
-            {/* Background Image with Dark Overlay */}
-            <div className="absolute inset-0 bg-black/60 z-10" /> {/* The dark tint */}
+            <div className="absolute inset-0 bg-black/60 z-10" /> 
             <img 
               src={slide.image} 
               alt={slide.title} 
               className="w-full h-full object-cover transform scale-105 animate-slow-zoom" 
             />
-
-            {/* Text Content */}
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto">
                <div className="animate-slide-up">
-                 <h1 className="text-4xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight drop-shadow-xl">
+                 <h1 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight tracking-tight drop-shadow-xl">
                     {slide.title}
                  </h1>
-                 <p className="text-lg md:text-2xl text-gray-200 max-w-2xl mx-auto mb-10 font-light leading-relaxed">
+                 <p className="text-sm md:text-lg text-gray-200 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
                     {slide.subtitle}
                  </p>
-                 <a href="#collections" className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
-                    {slide.cta} <ArrowRight size={20}/>
+                 <a href="#collections" className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
+                    {slide.cta} <ArrowRight size={18}/>
                  </a>
                </div>
             </div>
           </div>
         ))}
-
-        {/* Slider Controls (Arrows) */}
-        <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block">
-           <ChevronLeft size={32} />
-        </button>
-        <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block">
-           <ChevronRight size={32} />
-        </button>
-
-        {/* Slider Indicators (Dots) */}
+        <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronLeft size={32} /></button>
+        <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronRight size={32} /></button>
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex gap-3">
            {slides.map((_, idx) => (
-             <button 
-               key={idx} 
-               onClick={() => setCurrentSlide(idx)}
-               className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-tacsfon-neonGreen w-8' : 'bg-white/50 hover:bg-white'}`}
-             />
+             <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-tacsfon-neonGreen w-8' : 'bg-white/50 hover:bg-white'}`} />
            ))}
         </div>
       </section>
 
-
       {/* --- QUICK ACCESS HUB --- */}
       <section className="max-w-7xl mx-auto px-6 -mt-16 relative z-40">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* ACADEMIC HUB CARD */}
             <Link href="/resources" className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center text-tacsfon-neonGreen group-hover:scale-110 transition-transform">
-                        <Folder size={28} />
-                    </div>
-                    <div className="bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider group-hover:bg-tacsfon-neonGreen group-hover:text-black transition-colors">
-                        Faculty Access
-                    </div>
+                    <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center text-tacsfon-neonGreen group-hover:scale-110 transition-transform"><Folder size={28} /></div>
+                    <div className="bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider group-hover:bg-tacsfon-neonGreen group-hover:text-black transition-colors">Faculty Access</div>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-tacsfon-green">Academic Hub</h3>
                 <p className="text-gray-500 mb-6">Lecture notes, handouts, and past questions tailored for your department.</p>
-                <div className="flex items-center text-gray-900 font-bold text-sm group-hover:text-tacsfon-neonGreen transition-colors">
-                    OPEN FOLDER <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/>
-                </div>
+                <div className="flex items-center text-gray-900 font-bold text-sm group-hover:text-tacsfon-neonGreen transition-colors">OPEN FOLDER <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/></div>
             </Link>
-
-            {/* MEDIA CARD */}
             <Link href="/media" className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-orange hover:shadow-2xl hover:-translate-y-1 transition-all group">
                 <div className="flex justify-between items-start mb-4">
-                    <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-tacsfon-orange group-hover:bg-tacsfon-orange group-hover:text-white transition-colors">
-                        <Video size={28} />
-                    </div>
-                    <div className="bg-orange-100 text-orange-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                        Sermons & Media
-                    </div>
+                    <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-tacsfon-orange group-hover:bg-tacsfon-orange group-hover:text-white transition-colors"><Video size={28} /></div>
+                    <div className="bg-orange-100 text-orange-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Sermons & Media</div>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800 mb-2 group-hover:text-tacsfon-orange">Sermons & Media</h3>
                 <p className="text-gray-500 mb-6">Stream audio messages, videos, and photo galleries from fellowship.</p>
-                <div className="flex items-center text-tacsfon-orange font-bold text-sm">
-                    START STREAMING <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/>
-                </div>
+                <div className="flex items-center text-tacsfon-orange font-bold text-sm">START STREAMING <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/></div>
             </Link>
-
         </div>
       </section>
 
-      {/* --- BOOK COLLECTIONS --- */}
-      <section id="collections" className="max-w-7xl mx-auto px-6 py-24">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+      {/* --- BOOK COLLECTIONS SECTION --- */}
+      <section id="collections" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
+        
+        {/* Header & Search */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-4">
             <div>
                 <span className="text-tacsfon-green font-bold uppercase tracking-widest text-xs mb-2 block">The Archives</span>
                 <h2 className="text-4xl font-extrabold text-gray-900 mb-2">Book Collection</h2>
                 <p className="text-gray-500">Curated spiritual literature for your growth.</p>
             </div>
-            
-            {/* Search Bar */}
             <div className="relative w-full md:w-96">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input 
@@ -179,33 +153,66 @@ export default function Home() {
             </div>
         </div>
 
-        {/* Books Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-            {filteredBooks.length === 0 ? (
-                <div className="col-span-full py-20 text-center text-gray-400">
-                    <BookOpen size={48} className="mx-auto mb-4 opacity-20"/>
-                    <p>No books found matching "{search}"</p>
-                </div>
-            ) : filteredBooks.map((book) => (
-                <Link key={book.id} href={`/book/${book.id}`} className="group block">
-                    <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden shadow-lg mb-4 border border-gray-100 group-hover:shadow-2xl group-hover:translate-y-[-5px] transition-all duration-300">
-                        <img 
-                          src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`} 
-                          alt={book.title} 
-                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
-                        />
-                        {/* Overlay Gradient on Hover */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                            <span className="text-white text-xs font-bold uppercase tracking-wider">Read Now</span>
-                        </div>
+        {/* CONTENT DISPLAY LOGIC */}
+        {search ? (
+           // STATE 1: SEARCH ACTIVE (Show Grid Results)
+           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
+              {filteredBooks.length === 0 ? (
+                  <div className="col-span-full py-20 text-center text-gray-400">
+                      <BookOpen size={48} className="mx-auto mb-4 opacity-20"/>
+                      <p>No books found matching "{search}"</p>
+                  </div>
+              ) : filteredBooks.map((book) => (
+                 <BookCard key={book.id} book={book} />
+              ))}
+           </div>
+        ) : (
+           // STATE 2: NO SEARCH (Show Categories with Horizontal Scroll)
+           <div className="space-y-12">
+              {Object.entries(categories).map(([categoryName, categoryBooks]) => (
+                 <div key={categoryName} className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                       <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                          <span className="w-2 h-8 bg-tacsfon-green rounded-full block"></span>
+                          {categoryName}
+                       </h3>
+                       <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categoryBooks.length} Books</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 leading-tight mb-1 group-hover:text-tacsfon-green transition-colors line-clamp-2 text-lg">{book.title}</h3>
-                    <p className="text-sm text-gray-500 font-medium">{book.author}</p>
-                </Link>
-            ))}
-        </div>
+                    
+                    {/* HORIZONTAL SCROLL CONTAINER */}
+                    <div className="flex overflow-x-auto pb-8 gap-6 snap-x snap-mandatory scrollbar-hide">
+                       {categoryBooks.map((book) => (
+                          <div key={book.id} className="min-w-[160px] md:min-w-[200px] snap-start">
+                             <BookCard book={book} />
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              ))}
+           </div>
+        )}
       </section>
 
     </main>
   );
+}
+
+// --- HELPER COMPONENT FOR CONSISTENT CARDS ---
+function BookCard({ book }: { book: any }) {
+   return (
+      <Link href={`/book/${book.id}`} className="group block h-full">
+         <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden shadow-lg mb-4 border border-gray-100 group-hover:shadow-2xl group-hover:translate-y-[-5px] transition-all duration-300">
+             <img 
+               src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`} 
+               alt={book.title} 
+               className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                 <span className="text-white text-xs font-bold uppercase tracking-wider">Read Now</span>
+             </div>
+         </div>
+         <h3 className="font-bold text-gray-900 leading-tight mb-1 group-hover:text-tacsfon-green transition-colors line-clamp-2 text-sm md:text-base">{book.title}</h3>
+         <p className="text-xs text-gray-500 font-medium line-clamp-1">{book.author}</p>
+      </Link>
+   );
 }

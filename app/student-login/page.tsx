@@ -20,7 +20,8 @@ export default function StudentLogin() {
       alert(error.message);
       setLoading(false);
     } else {
-      router.push('/');
+      // --- UPDATE HERE ---
+      router.push('/dashboard');
     }
   };
 

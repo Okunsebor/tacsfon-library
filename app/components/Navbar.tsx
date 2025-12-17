@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, BookOpen, Menu, X } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, Menu, X } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
@@ -21,14 +21,12 @@ export default function Navbar() {
 
   return (
     <>
-      {/* --- FIX APPLIED: 'py-1' removes the white space above/below. --- */}
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'} py-1 border-b border-gray-100`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* --- FIX APPLIED: Fixed height (h-14 mobile, h-16 desktop) --- */}
           <div className="flex justify-between items-center h-14 md:h-16"> 
             
-            {/* 1. BRAND LOGO (Tighter fit) */}
+            {/* 1. BRAND LOGO */}
             <Link href="/" className="flex items-center">
               <img 
                 src="/tacsfon-brand.png" 
@@ -51,12 +49,14 @@ export default function Navbar() {
                   </button>
                   <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-64 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2">
                       <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden p-2 ring-1 ring-black/5">
-                          <Link href="/#collections" className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors">
-                              <div className="w-8 h-8 rounded-full bg-orange-100 text-tacsfon-orange flex items-center justify-center"><BookOpen size={16} /></div>
-                              <div><h4 className="text-sm font-bold text-gray-800">Browse Books</h4></div>
+                          {/* MOVED: Student Portal Here */}
+                          <Link href="/student-login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors">
+                              <div className="w-8 h-8 rounded-full bg-green-100 text-tacsfon-green flex items-center justify-center"><User size={16} /></div>
+                              <div><h4 className="text-sm font-bold text-gray-800">Student Portal</h4></div>
                           </Link>
-                          <Link href="/login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors mt-1">
-                              <div className="w-8 h-8 rounded-full bg-green-100 text-tacsfon-green flex items-center justify-center"><ShieldCheck size={16} /></div>
+                          {/* MOVED: Librarian Portal Here */}
+                          <Link href="/admin/login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors mt-1">
+                              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><ShieldCheck size={16} /></div>
                               <div><h4 className="text-sm font-bold text-gray-800">Librarian Portal</h4></div>
                           </Link>
                       </div>
@@ -66,10 +66,14 @@ export default function Navbar() {
               <Link href="/contact" className={`text-sm ${isActive('/contact')}`}>Contact</Link>
             </div>
 
-            {/* 3. CTA BUTTON */}
+            {/* 3. RIGHT SIDE: USER DASHBOARD ICON (Replaced the Button) */}
             <div className="hidden lg:flex items-center">
-              <Link href="/student-login" className="group relative px-5 py-2 font-bold text-white rounded-full overflow-hidden bg-tacsfon-green shadow-lg shadow-green-900/20 hover:shadow-green-900/40 transition-all">
-                <span className="flex items-center gap-2 relative text-xs"><User size={16} /> Student Portal</span>
+              <Link 
+                href="/dashboard" 
+                className="p-2 rounded-full text-gray-400 hover:bg-gray-50 hover:text-tacsfon-green transition-all"
+                title="Go to Dashboard"
+              >
+                <User size={24} />
               </Link>
             </div>
 
@@ -87,13 +91,9 @@ export default function Navbar() {
             <Link href="/" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Home</Link>
             <Link href="/resources" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Academic Hub</Link>
             <Link href="/media" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Media & Sermons</Link>
-            <Link href="/about" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>About Us</Link>
-            <Link href="/contact" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Contact</Link>
-            
-            <hr className="border-gray-100"/>
-            <Link href="/student-login" className="flex items-center justify-center w-full py-4 bg-tacsfon-green text-white font-bold rounded-2xl text-lg shadow-xl" onClick={() => setIsOpen(false)}>
-              Student Sign In
-            </Link>
+            <Link href="/student-login" className="text-xl font-bold text-tacsfon-green block" onClick={() => setIsOpen(false)}>Student Portal</Link>
+            <Link href="/admin/login" className="text-xl font-bold text-orange-600 block" onClick={() => setIsOpen(false)}>Librarian Portal</Link>
+            <Link href="/dashboard" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>My Dashboard</Link>
           </div>
       </div>
     </>

@@ -43,14 +43,13 @@ export default function Register() {
       alert(error.message);
       setLoading(false);
     } else {
-      // --- FIX: Direct Access to Home ---
-      // We check if a session was created. If yes, go to home.
+      // --- UPDATE HERE: Redirect to Dashboard ---
       if (data.session) {
-        router.push('/'); 
+        router.push('/dashboard'); 
       } else {
         // Fallback: If for some reason session isn't active, try signing in with the password we already have
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (!signInError) router.push('/');
+        if (!signInError) router.push('/dashboard');
       }
     }
   };

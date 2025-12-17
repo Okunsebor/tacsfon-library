@@ -26,17 +26,30 @@ export default function AdminLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   
+  // --- PROTECTION STATE ---
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   // Data States
   const [requests, setRequests] = useState<any[]>([]);
   const [books, setBooks] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]); // For Contact Inbox
   const router = useRouter();
 
-  // 1. FETCH ALL DATA
+  // 1. FETCH ALL DATA & CHECK SECURITY
   useEffect(() => {
     async function init() {
+      // --- SECURITY CHECK START ---
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/login'); return; }
+      
+      if (!session) { 
+        // Redirect to the SPECIFIC Admin Login page
+        router.push('/admin/login'); 
+        return; 
+      }
+      
+      // If session exists, stop showing the "Verifying" screen
+      setCheckingAuth(false);
+      // --- SECURITY CHECK END ---
       
       await fetchData();
     }
@@ -106,6 +119,15 @@ export default function AdminLayout() {
       </button>
     );
   };
+
+  // --- SECURITY LOADING SCREEN ---
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-tacsfon-orange animate-pulse font-bold text-xl">Verifying Clearance...</div>
+      </div>
+    );
+  }
 
   if (loading && !books.length) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Loading Admin Panel...</div>;
 
