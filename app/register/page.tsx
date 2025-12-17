@@ -17,11 +17,8 @@ export default function Register() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${location.origin}/auth/callback` } // Important for magic links
-    });
+    const { error } = await supabase.auth.signUp({ email, password });
+
     if (error) {
       alert(error.message);
       setLoading(false);
@@ -34,87 +31,82 @@ export default function Register() {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
+    
+    // Verify the code
+    const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: otp,
       type: 'signup'
     });
+
     if (error) {
       alert(error.message);
       setLoading(false);
     } else {
-      router.push('/student-login');
-      alert('Email verified successfully! Please sign in.');
+      // --- FIX: Direct Access to Home ---
+      // We check if a session was created. If yes, go to home.
+      if (data.session) {
+        router.push('/'); 
+      } else {
+        // Fallback: If for some reason session isn't active, try signing in with the password we already have
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (!signInError) router.push('/');
+      }
     }
-  };
-
-  const handleGoogleSignUp = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${location.origin}/auth/callback` }
-    });
-    if (error) alert(error.message);
   };
 
   return (
     <AuthLayout 
-      title={step === 'details' ? "Create your account" : "Verify your email"}
-      subtitle={step === 'details' ? "Start your journey with the TACSFON Library." : `We've sent a code to ${email}`}
-      currentStep={step}
-      isSignUp={true}
+      title={step === 'details' ? "Create Account" : "Verify Email"}
+      subtitle={step === 'details' ? "Join the community of intellectuals." : `Enter the code sent to ${email}`}
     >
       {step === 'details' ? (
-        // --- STEP 1: YOUR DETAILS FORM ---
+        // --- STEP 1: DETAILS ---
         <div className="space-y-6">
           <form onSubmit={handleSignUp} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input type="email" required placeholder="Enter your email" className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl outline-none focus:border-tacsfon-green focus:ring-2 focus:ring-tacsfon-green/20 transition-all font-medium" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="email" required placeholder="name@example.com" className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium text-gray-900" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input type="password" required placeholder="Create a password" className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl outline-none focus:border-tacsfon-green focus:ring-2 focus:ring-tacsfon-green/20 transition-all font-medium" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="password" required placeholder="Create a password" className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium text-gray-900" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
             </div>
-            <button type="submit" disabled={loading} className="w-full bg-tacsfon-green text-white font-bold text-lg py-3 rounded-xl hover:bg-[#00502b] transition-all flex items-center justify-center gap-2">
+            <button type="submit" disabled={loading} className="w-full bg-tacsfon-green text-white font-bold text-lg py-3 rounded-xl shadow-lg shadow-green-900/20 hover:bg-[#00502b] hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
               {loading ? <Loader className="animate-spin" /> : <>Continue <ArrowRight size={20}/></>}
             </button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200"></span></div>
-            <div className="relative flex justify-center text-sm"><span className="px-4 bg-white text-gray-500 font-medium">OR</span></div>
-          </div>
-
-          <button onClick={handleGoogleSignUp} className="w-full bg-white text-gray-700 font-bold text-lg py-3 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center gap-3">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-6 w-6" />
-            Sign up with Google
-          </button>
-
-          <p className="text-center text-sm text-gray-500">
-            Already have an account? <Link href="/student-login" className="text-tacsfon-green font-bold hover:underline">Sign in</Link>
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Already have an account? <Link href="/student-login" className="text-tacsfon-green font-bold hover:underline">Log in</Link>
           </p>
         </div>
       ) : (
-        // --- STEP 2: VERIFY EMAIL FORM ---
+        // --- STEP 2: VERIFICATION ---
         <form onSubmit={handleVerify} className="space-y-6">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Verification Code</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1 text-center">Verification Code</label>
             <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input type="text" required placeholder="Enter the 6-digit code" className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl outline-none focus:border-tacsfon-green focus:ring-2 focus:ring-tacsfon-green/20 transition-all font-medium tracking-widest" value={otp} onChange={(e) => setOtp(e.target.value)} />
+              <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                required 
+                placeholder="000000" 
+                maxLength={8}
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-bold text-2xl tracking-[0.5em] text-center text-gray-900" 
+                value={otp} 
+                onChange={(e) => setOtp(e.target.value)} 
+              />
             </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-tacsfon-green text-white font-bold text-lg py-3 rounded-xl hover:bg-[#00502b] transition-all flex items-center justify-center gap-2">
-            {loading ? <Loader className="animate-spin" /> : <>Verify Email <ArrowRight size={20}/></>}
-          </button>
-          <button type="button" onClick={() => setStep('details')} className="w-full text-gray-500 font-bold text-sm hover:text-tacsfon-green transition-colors">
-            ← Back to details
+          <button type="submit" disabled={loading} className="w-full bg-tacsfon-green text-white font-bold text-lg py-3 rounded-xl shadow-lg shadow-green-900/20 hover:bg-[#00502b] hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2">
+            {loading ? <Loader className="animate-spin" /> : <>Verify & Access <ArrowRight size={20}/></>}
           </button>
         </form>
       )}
