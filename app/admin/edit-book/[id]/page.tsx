@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams } from 'next/navigation';
-import { Book, User, List, Hash, Image as ImageIcon, FileText, ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditBook() {
@@ -11,7 +11,13 @@ export default function EditBook() {
   const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
-    title: '', author: '', category: '', available_copies: 0, cover_url: '', summary: ''
+    title: '', 
+    author: '', 
+    category: '', 
+    available_copies: 0, 
+    cover_url: '', 
+    pdf_url: '', // <--- ADDED THIS
+    summary: ''
   });
 
   // Fetch existing data
@@ -34,7 +40,7 @@ export default function EditBook() {
       alert('Error updating: ' + error.message);
     } else {
       alert('Book updated successfully!');
-      router.push('/admin/dashboard'); 
+      router.push('/admin'); 
     }
     setLoading(false);
   };
@@ -46,7 +52,7 @@ export default function EditBook() {
       <div className="max-w-3xl w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
         
         <div className="flex items-center justify-between mb-8">
-            <Link href="/admin/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-tacsfon-green font-bold">
+            <Link href="/admin" className="flex items-center gap-2 text-gray-500 hover:text-tacsfon-green font-bold">
                 <ArrowLeft size={20} /> Cancel
             </Link>
             <h1 className="text-2xl font-bold text-gray-800">Edit Book Details</h1>
@@ -73,6 +79,21 @@ export default function EditBook() {
               <label className="block text-sm font-bold text-gray-700 mb-2">Stock</label>
               <input type="number" value={formData.available_copies} onChange={e => setFormData({...formData, available_copies: parseInt(e.target.value)})} className="w-full p-3 rounded-xl border border-gray-200 focus:border-tacsfon-green outline-none" />
             </div>
+          </div>
+
+          {/* --- NEW: GOOGLE DRIVE LINK SECTION --- */}
+          <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <label className="block text-xs font-bold text-blue-600 uppercase mb-1">Google Drive PDF Link</label>
+              <input 
+                type="text" 
+                placeholder="https://drive.google.com/file/d/..."
+                className="w-full bg-white border border-blue-200 rounded-xl px-4 py-3 text-gray-700 focus:ring-2 focus:ring-blue-400 outline-none font-mono text-sm"
+                value={formData.pdf_url || ''}
+                onChange={(e) => setFormData({...formData, pdf_url: e.target.value})}
+              />
+              <p className="text-[10px] text-blue-400 mt-2 font-bold">
+                  * Ensure the link permission is set to "Anyone with the link" in Google Drive.
+              </p>
           </div>
 
           <div>

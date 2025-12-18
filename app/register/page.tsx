@@ -4,13 +4,14 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/app/components/AuthLayout';
-import { Mail, Lock, Loader, ArrowRight, KeyRound, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Loader, ArrowRight, KeyRound, CheckCircle2, Eye, EyeOff, User } from 'lucide-react';
 
 export default function Register() {
   const [step, setStep] = useState<'details' | 'verify'>('details');
   const [loading, setLoading] = useState(false);
   
   // Form States
+  const [fullName, setFullName] = useState(''); // <--- NEW: Stores the user's name
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,13 +27,23 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
 
+    // 1. Check Passwords
     if (password !== confirmPassword) {
       alert("Passwords do not match. Please try again.");
       setLoading(false);
       return;
     }
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    // 2. Sign Up with Metadata (Full Name)
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: {
+          full_name: fullName, // <--- This saves the name to the user's profile
+        }
+      }
+    });
 
     if (error) {
       alert(error.message);
@@ -76,6 +87,22 @@ export default function Register() {
         <div className="space-y-6">
           <form onSubmit={handleSignUp} className="space-y-4">
             
+            {/* --- NEW: Full Name Field --- */}
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="John Doe" 
+                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-tacsfon-green focus:ring-4 focus:ring-green-500/10 transition-all font-medium text-gray-900 capitalize" 
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)} 
+                />
+              </div>
+            </div>
+
             {/* Email Field */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Email</label>

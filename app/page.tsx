@@ -17,21 +17,24 @@ export default function Home() {
       image: "/slide1.jpg", 
       title: "WELCOME TO TACSFON LIBRARY",
       subtitle: "Empowering Academic Excellence & Spiritual Depth",
-      cta: "Explore Resources"
+      cta: "Explore Resources",
+      link: "#collections" // Stays on page
     },
     {
       id: 2,
       image: "/slide2.jpg", 
       title: "RAISING GIANTS",
       subtitle: "Access thousands of spiritual books and sermons meant to build your stature in Christ.",
-      cta: "Browse Sermons"
+      cta: "Browse Sermons",
+      link: "/media" // <--- Redirects to Media Page
     },
     {
       id: 3,
       image: "/slide3.jpg", 
       title: "A COMMUNITY OF INTELLECTUALS",
       subtitle: "Join the movement of students who excel in both their studies and their walk with God.",
-      cta: "Join the Family"
+      cta: "Let's Connect", // <--- Changed text
+      link: "/contact" // <--- Redirects to Contact Page
     }
   ];
 
@@ -91,9 +94,10 @@ export default function Home() {
                  <p className="text-sm md:text-lg text-gray-200 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
                     {slide.subtitle}
                  </p>
-                 <a href="#collections" className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
-                    {slide.cta} <ArrowRight size={18}/>
-                 </a>
+                 {/* Uses Next.js Link for faster navigation */}
+                <Link href={slide.link} className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
+                  {slide.cta} <ArrowRight size={18}/>
+                </Link>
                </div>
             </div>
           </div>
