@@ -18,9 +18,17 @@ export default function StudentDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [userName, setUserName] = useState('Scholar'); // <--- NEW STATE
+  const [userName, setUserName] = useState('Scholar');
   const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
   const [greeting, setGreeting] = useState('');
+  
+  // --- NEW: Real Data States ---
+  const [recentBooks, setRecentBooks] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    booksRead: 0,
+    hoursRead: 0,
+    activeBorrows: 0
+  });
 
   // --- 1. DETERMINE TIME OF DAY ---
   useEffect(() => {
@@ -41,15 +49,41 @@ export default function StudentDashboard() {
       }
 
       setUser(session.user);
+      const email = session.user.email;
 
-      // --- NEW: Extract Name from Metadata ---
+      // Get Name
       const fullName = session.user.user_metadata?.full_name;
-      if (fullName) {
-        // Get just the first name (e.g. "Praise" from "Praise Oyemen")
-        const firstName = fullName.split(' ')[0];
-        setUserName(firstName);
-      }
+      if (fullName) setUserName(fullName.split(' ')[0]);
 
+      // --- A. FETCH READING HISTORY (For Stats & Activity) ---
+      const { data: history, error: historyError } = await supabase
+        .from('reading_history')
+        .select(`
+            last_read_at,
+            book_id,
+            books (id, title, author, cover_url)
+        `)
+        .eq('user_email', email)
+        .order('last_read_at', { ascending: false });
+
+      const historyData = history || [];
+      setRecentBooks(historyData); // Update Recent Activity List
+
+      // --- B. FETCH ACTIVE BORROWS ---
+      const { count: borrowCount } = await supabase
+        .from('borrow_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('student_email', email)
+        .eq('status', 'Pending');
+
+      // --- C. CALCULATE STATS ---
+      setStats({
+        booksRead: historyData.length,
+        hoursRead: historyData.length * 2, // Estimate: 2 hours per book opened
+        activeBorrows: borrowCount || 0
+      });
+
+      // --- D. FETCH RECOMMENDED (Random 4 books) ---
       const { data: books } = await supabase
         .from('books')
         .select('*')
@@ -71,7 +105,7 @@ export default function StudentDashboard() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="flex flex-col items-center gap-4">
         <div className="h-12 w-12 border-4 border-tacsfon-green border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-bold text-sm animate-pulse">Verifying Credentials...</p>
+        <p className="text-gray-500 font-bold text-sm animate-pulse">Loading Your Profile...</p>
       </div>
     </div>
   );
@@ -109,7 +143,6 @@ export default function StudentDashboard() {
                         <Calendar size={16} />
                         <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                     </div>
-                    {/* --- UPDATED: Uses userName variable --- */}
                     <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
                         {greeting}, <span className="text-gray-400">{userName}.</span>
                     </h1>
@@ -135,25 +168,25 @@ export default function StudentDashboard() {
             {/* --- LEFT COLUMN: STATS & ACTIONS --- */}
             <div className="lg:col-span-2 space-y-8">
                 
-                {/* Stats Row */}
+                {/* Stats Row (CONNECTED TO REAL DATA) */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
                         <div className="flex items-center gap-3 text-blue-600 mb-2">
-                            <BookOpen size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Read</span>
+                            <BookOpen size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Books Read</span>
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">12</span>
+                        <span className="text-3xl font-extrabold text-gray-900">{stats.booksRead}</span>
                     </div>
                     <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100">
                         <div className="flex items-center gap-3 text-orange-600 mb-2">
-                            <Clock size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Hours</span>
+                            <Clock size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Est. Hours</span>
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">45</span>
+                        <span className="text-3xl font-extrabold text-gray-900">{stats.hoursRead}</span>
                     </div>
                     <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100">
                         <div className="flex items-center gap-3 text-purple-600 mb-2">
-                            <Award size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Badges</span>
+                            <Award size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Active Borrows</span>
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">3</span>
+                        <span className="text-3xl font-extrabold text-gray-900">{stats.activeBorrows}</span>
                     </div>
                 </div>
 
@@ -187,7 +220,7 @@ export default function StudentDashboard() {
                     </div>
                 </div>
 
-                {/* Recommended Section (DYNAMIC) */}
+                {/* Recommended Section */}
                 <div>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-gray-900">Recommended For You</h3>
@@ -219,24 +252,49 @@ export default function StudentDashboard() {
 
             </div>
 
-            {/* --- RIGHT COLUMN: ACTIVITY --- */}
+            {/* --- RIGHT COLUMN: RECENT ACTIVITY (DYNAMIC) --- */}
             <div className="space-y-6">
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-full">
                     <h3 className="font-bold text-gray-900 mb-6">Recent Activity</h3>
                     
-                    {/* Empty State Placeholder */}
-                    <div className="flex flex-col items-center justify-center h-64 text-center">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                            <Clock size={32} />
+                    {recentBooks.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-center">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                                <Clock size={32} />
+                            </div>
+                            <p className="text-gray-900 font-bold mb-1">No history yet</p>
+                            <p className="text-xs text-gray-400 max-w-[200px]">
+                                Books you read or download will appear here automatically.
+                            </p>
+                            <Link href="/#collections" className="mt-6 px-6 py-2 bg-tacsfon-green text-white text-xs font-bold rounded-full hover:bg-green-700 transition-colors">
+                                Start Reading
+                            </Link>
                         </div>
-                        <p className="text-gray-900 font-bold mb-1">No history yet</p>
-                        <p className="text-xs text-gray-400 max-w-[200px]">
-                            Books you read or download will appear here automatically.
-                        </p>
-                        <Link href="/#collections" className="mt-6 px-6 py-2 bg-tacsfon-green text-white text-xs font-bold rounded-full hover:bg-green-700 transition-colors">
-                            Start Reading
-                        </Link>
-                    </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Map through Recent Books */}
+                            {recentBooks.slice(0, 4).map((entry: any) => (
+                                <Link key={entry.book_id} href={`/book/${entry.book_id}`} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors group">
+                                    <div className="h-16 w-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                        <img 
+                                          src={entry.books?.cover_url || "https://placehold.co/100x150"} 
+                                          alt="cover" 
+                                          className="w-full h-full object-cover" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-tacsfon-green transition-colors">{entry.books?.title}</h4>
+                                        <p className="text-xs text-gray-500">{entry.books?.author}</p>
+                                        <span className="text-[10px] text-gray-400 mt-1 block">Continued reading...</span>
+                                    </div>
+                                </Link>
+                            ))}
+                            
+                            <div className="pt-4 border-t border-gray-100 text-center">
+                                <Link href="/#collections" className="text-xs font-bold text-tacsfon-green hover:underline">View Full Library</Link>
+                            </div>
+                        </div>
+                    )}
 
                 </div>
             </div>

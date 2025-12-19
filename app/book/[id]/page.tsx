@@ -17,10 +17,11 @@ export default function BookDetails() {
 
   useEffect(() => {
     // 1. Get Student Info
-    async function getStudent() {
+    async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setStudent(session.user);
+        
         // Check for existing pending requests
         const { data: request } = await supabase
           .from('borrow_requests')
@@ -33,13 +34,31 @@ export default function BookDetails() {
         if (request) setRequestStatus(request.request_type);
       }
     }
-    getStudent();
+    init();
 
-    // 2. Fetch Book
+    // 2. Fetch Book & Record History
     async function fetchBook() {
       const { data: bookData } = await supabase.from('books').select('*').eq('id', id).single();
       setBook(bookData);
       setLoading(false);
+
+      // --- NEW: RECORD HISTORY AUTOMATICALLY ---
+      if (bookData) {
+         // Check if readable (Drive Link or Public)
+         const isReadable = bookData.ebook_access === 'public' || bookData.pdf_url;
+         
+         if (isReadable) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                // Upsert: If exists, update timestamp. If new, insert.
+                await supabase.from('reading_history').upsert({
+                    user_email: session.user.email,
+                    book_id: bookData.id,
+                    last_read_at: new Date().toISOString()
+                }, { onConflict: 'user_email, book_id' });
+            }
+         }
+      }
     }
     fetchBook();
   }, [id]);
@@ -47,7 +66,6 @@ export default function BookDetails() {
   // --- HELPER: CONVERT DRIVE LINKS TO EMBED LINKS ---
   const getEmbedUrl = (url: string) => {
     if (!url) return null;
-    // Switch '/view' to '/preview' for cleaner embedding
     if (url.includes('drive.google.com') && url.includes('/view')) {
       return url.replace(/\/view.*/, '/preview');
     }
@@ -97,7 +115,6 @@ export default function BookDetails() {
   // --- SMART DETECTION LOGIC ---
   const embedUrl = getEmbedUrl(book.pdf_url);
   const isInternetArchive = book.ebook_access === 'public';
-  // It is readable if it's from Internet Archive OR has a Drive Link
   const isReadable = isInternetArchive || !!embedUrl; 
 
   return (
@@ -149,7 +166,6 @@ export default function BookDetails() {
                        {/* 1. BUTTON: SMART READ BUTTON */}
                        {isReadable && (
                           embedUrl ? (
-                            /* OPTION A: If Drive Link -> Scroll to Reader at Bottom */
                             <a 
                               href="#reader-view"
                               className="w-full bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
@@ -157,7 +173,6 @@ export default function BookDetails() {
                               <BookOpen size={20} className="text-tacsfon-green" /> Read Now
                             </a>
                           ) : (
-                            /* OPTION B: If Internet Archive -> Go to Read Page */
                             <Link 
                               href={`/read/${book.id}`}
                               className="w-full bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
