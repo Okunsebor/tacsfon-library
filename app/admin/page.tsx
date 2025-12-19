@@ -89,15 +89,41 @@ export default function AdminLayout() {
     }
   };
 
-  const handleRequestAction = async (id: number, status: string, bookId: number) => {
-    await supabase.from('borrow_requests').update({ status }).eq('id', id);
-    if (status === 'Approved') {
+  const handleRequestAction = async (requestId: number, newStatus: string, bookId: number) => {
+    // 1. Find the specific request so we can check its type (Physical vs Digital)
+    const request = requests.find(r => r.id === requestId);
+    if (!request) return;
+
+    // 2. Update the Request Status in Supabase
+    const { error: updateError } = await supabase
+      .from('borrow_requests')
+      .update({ status: newStatus })
+      .eq('id', requestId);
+
+    if (updateError) {
+      alert("Error updating request: " + updateError.message);
+      return;
+    }
+
+    // 3. STOCK LOGIC: Only reduce stock if it is 'Approved' AND 'physical'
+    if (newStatus === 'Approved' && request.request_type === 'physical') {
         const book = books.find(b => b.id === bookId);
-        if (book) {
-            await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
+        
+        // Safety check: Don't reduce if stock is already 0
+        if (book && book.available_copies > 0) {
+            const { error: stockError } = await supabase
+              .from('books')
+              .update({ available_copies: book.available_copies - 1 })
+              .eq('id', bookId);
+            
+            if (stockError) alert("Request approved, but failed to update stock: " + stockError.message);
+        } else {
+            alert("Warning: Request approved, but book stock was already 0.");
         }
     }
-    fetchData(); // Refresh to show updates
+
+    // 4. Refresh the table
+    await fetchData(); 
   };
 
   // --- NAVIGATION LINKS ---
