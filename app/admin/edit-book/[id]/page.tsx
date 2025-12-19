@@ -16,7 +16,7 @@ export default function EditBook() {
     category: '', 
     available_copies: 0, 
     cover_url: '', 
-    pdf_url: '', // <--- ADDED THIS
+    pdf_url: '', 
     summary: ''
   });
 
@@ -40,6 +40,7 @@ export default function EditBook() {
       alert('Error updating: ' + error.message);
     } else {
       alert('Book updated successfully!');
+      // --- FIX: Redirect to '/admin' instead of '/admin/dashboard' ---
       router.push('/admin'); 
     }
     setLoading(false);
@@ -52,6 +53,7 @@ export default function EditBook() {
       <div className="max-w-3xl w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
         
         <div className="flex items-center justify-between mb-8">
+            {/* --- FIX: Back button also goes to '/admin' --- */}
             <Link href="/admin" className="flex items-center gap-2 text-gray-500 hover:text-tacsfon-green font-bold">
                 <ArrowLeft size={20} /> Cancel
             </Link>
@@ -81,7 +83,7 @@ export default function EditBook() {
             </div>
           </div>
 
-          {/* --- NEW: GOOGLE DRIVE LINK SECTION --- */}
+          {/* GOOGLE DRIVE LINK SECTION */}
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
               <label className="block text-xs font-bold text-blue-600 uppercase mb-1">Google Drive PDF Link</label>
               <input 

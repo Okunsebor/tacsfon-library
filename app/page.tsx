@@ -18,7 +18,7 @@ export default function Home() {
       title: "WELCOME TO TACSFON LIBRARY",
       subtitle: "Empowering Academic Excellence & Spiritual Depth",
       cta: "Explore Resources",
-      link: "#collections" // Stays on page
+      link: "#collections"
     },
     {
       id: 2,
@@ -26,19 +26,18 @@ export default function Home() {
       title: "RAISING GIANTS",
       subtitle: "Access thousands of spiritual books and sermons meant to build your stature in Christ.",
       cta: "Browse Sermons",
-      link: "/media" // <--- Redirects to Media Page
+      link: "/media"
     },
     {
       id: 3,
       image: "/slide3.jpg", 
       title: "A COMMUNITY OF INTELLECTUALS",
       subtitle: "Join the movement of students who excel in both their studies and their walk with God.",
-      cta: "Let's Connect", // <--- Changed text
-      link: "/contact" // <--- Redirects to Contact Page
+      cta: "Let's Connect",
+      link: "/contact"
     }
   ];
 
-  // Auto-Slide Logic
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -49,25 +48,78 @@ export default function Home() {
   const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
-  // Fetch Books Logic
   useEffect(() => {
     async function fetchBooks() {
-      const { data } = await supabase.from('books').select('*').order('title', { ascending: true });
-      setBooks(data || []);
+      const { data, error } = await supabase.from('books').select('*').order('title', { ascending: true });
+      if (error) console.error(error);
+      else setBooks(data || []);
     }
     fetchBooks();
   }, []);
 
-  // Filter for Search
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
 
-  // Group Books by Category
+  // --- 🧠 SUPER SMART SORTER (Author + Keyword Intelligence) ---
+  const smartCategorize = (book: any) => {
+    // 0. Priority: If Admin manually set a category, respect it.
+    if (book.category && book.category !== 'General Collection' && book.category !== 'General') {
+        return book.category;
+    }
+
+    const text = (book.title + " " + (book.summary || "")).toLowerCase();
+    const author = (book.author || "").toLowerCase();
+
+    // 1. AUTHOR INTELLIGENCE (Check Authors First)
+    // Spiritual Giants
+    if (author.includes('hagin') || author.includes('oyedepo') || author.includes('adeboye') || 
+        author.includes('kumuyi') || author.includes('selman') || author.includes('watchman nee') || 
+        author.includes('spurgeon') || author.includes('copeland') || author.includes('prince') ||
+        author.includes('omartian') || author.includes('c.s. lewis') || author.includes('piper') ||
+        author.includes('lucado') || author.includes('katherine kuhlman') || author.includes('benny hinn')) {
+        return 'Spiritual Growth';
+    }
+    
+    // Leadership Experts
+    if (author.includes('maxwell') || author.includes('sinek') || author.includes('covey') || 
+        author.includes('carnegie') || author.includes('myles munroe')) {
+        // Myles Munroe writes both, but often Leadership/Kingdom
+        if(text.includes('prayer') || text.includes('spirit')) return 'Spiritual Growth'; 
+        return 'Leadership';
+    }
+
+    // Finance/Business Gurus
+    if (author.includes('kiyosaki') || author.includes('buffett') || author.includes('dangote') || 
+        author.includes('osuntokun') || author.includes('ramsey')) {
+        return 'Finance & Career';
+    }
+
+    // Relationship Experts
+    if (author.includes('chapman') || author.includes('kris vallotton')) {
+        return 'Relationships';
+    }
+
+    // 2. KEYWORD INTELLIGENCE (Fallback if Author is unknown)
+    if (text.includes('leader') || text.includes('influence') || text.includes('laws') || text.includes('habit') || text.includes('strategy')) return 'Leadership';
+    if (text.includes('prayer') || text.includes('god') || text.includes('spirit') || text.includes('jesus') || text.includes('faith') || text.includes('bible') || text.includes('gospel') || text.includes('church') || text.includes('devotional') || text.includes('holiness')) return 'Spiritual Growth';
+    if (text.includes('money') || text.includes('finance') || text.includes('rich') || text.includes('wealth') || text.includes('business') || text.includes('economy') || text.includes('invest')) return 'Finance & Career';
+    if (text.includes('physics') || text.includes('chem') || text.includes('math') || text.includes('calculus') || text.includes('program') || text.includes('code') || text.includes('python') || text.includes('engineer') || text.includes('biology') || text.includes('statistic') || text.includes('law')) return 'Academic';
+    if (text.includes('love') || text.includes('marriage') || text.includes('dating') || text.includes('sex') || text.includes('courtship')) return 'Relationships';
+    
+    // 3. Fallback
+    return 'General Collection';
+  };
+
+  // --- GROUPING LOGIC ---
   const categories = books.reduce((acc, book) => {
-    const category = book.category || 'Uncategorized';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(book);
+    let catRaw = smartCategorize(book);
+    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase(); // Normalize case
+
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(book);
     return acc;
   }, {} as Record<string, any[]>);
+
+  const sortedCategoryNames = Object.keys(categories).sort();
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
@@ -94,10 +146,9 @@ export default function Home() {
                  <p className="text-sm md:text-lg text-gray-200 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
                     {slide.subtitle}
                  </p>
-                 {/* Uses Next.js Link for faster navigation */}
-                <Link href={slide.link} className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
-                  {slide.cta} <ArrowRight size={18}/>
-                </Link>
+                 <Link href={slide.link} className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
+                    {slide.cta} <ArrowRight size={18}/>
+                 </Link>
                </div>
             </div>
           </div>
@@ -171,23 +222,21 @@ export default function Home() {
               ))}
            </div>
         ) : (
-           // STATE 2: NO SEARCH (Show Categories with Horizontal Scroll)
+           // STATE 2: NO SEARCH (Show Categories using the SORTED list)
            <div className="space-y-12">
-              {/* --- FIX APPLIED: Changed type from [string, any[]] to [string, any] to silence TS error --- */}
-              {Object.entries(categories).map(([categoryName, categoryBooks]: [string, any]) => (
+              {sortedCategoryNames.map((categoryName) => (
                  <div key={categoryName} className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                           <span className="w-2 h-8 bg-tacsfon-green rounded-full block"></span>
                           {categoryName}
                        </h3>
-                       <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categoryBooks.length} Books</span>
+                       <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categories[categoryName].length} Books</span>
                     </div>
                     
                     {/* HORIZONTAL SCROLL CONTAINER */}
                     <div className="flex overflow-x-auto pb-8 gap-6 snap-x snap-mandatory scrollbar-hide">
-                       {/* --- FIX APPLIED: categoryBooks is now treated as 'any' so .map() works freely --- */}
-                       {categoryBooks.map((book: any) => (
+                       {categories[categoryName].map((book: any) => (
                           <div key={book.id} className="min-w-[160px] md:min-w-[200px] snap-start">
                              <BookCard book={book} />
                           </div>
