@@ -19,8 +19,7 @@ export default function Footer() {
                 <h2 className="text-2xl font-extrabold tracking-tight">TACSFON</h2>
              </div>
              <p className="text-gray-400 leading-relaxed max-w-sm">
-               The Apostolic Church Students' Fellowship of Nigeria. 
-               Raising an army of intellectuals and spiritual giants for the Kingdom.
+               Faith. Wisdom. Excellence. Your gateway to resources that sharpen the intellect and deepen your walk with Christ.
              </p>
           </div>
 
@@ -45,11 +44,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3">
                  <Mail size={20} className="shrink-0 text-gray-500" />
-                 <span>library@tacsfon.org</span>
+                 <span>tacsfonfutminna@gmail.com</span>
               </li>
               <li className="flex items-center gap-3">
                  <Phone size={20} className="shrink-0 text-gray-500" />
-                 <span>+234 800 000 0000</span>
+                 <span>+234 90 2321 9933</span>
               </li>
             </ul>
           </div>

@@ -11,7 +11,7 @@ export default function StudentLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // --- NEW: Visibility State ---
+  // --- Visibility State ---
   const [showPassword, setShowPassword] = useState(false);
   
   const router = useRouter();
@@ -19,12 +19,31 @@ export default function StudentLogin() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // 1. Attempt Login
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       alert(error.message);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      // 2. Login Successful! Now check if they completed Onboarding.
+      // We check the 'student_profiles' table for this specific user's email.
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('faculty, department')
+        .eq('email', email)
+        .single();
+
+      // 3. The Logic Check:
+      // If the profile is missing OR missing faculty OR missing department...
+      if (!profile || !profile.faculty || !profile.department) {
+         // ...Send them to the Setup Wizard
+         router.push('/onboarding');
+      } else {
+         // ...Otherwise, they are good to go!
+         router.push('/dashboard');
+      }
     }
   };
 
