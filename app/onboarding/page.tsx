@@ -16,14 +16,14 @@ export default function Onboarding() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   const faculties = [
-    "School of Agriculture & Agricultural Technology",
-    "School of Engineering & Engineering Technology",
-    "School of Environmental Technology",
-    "School of Information & Communication Technology",
-    "School of Life Sciences",
-    "School of Physical Sciences",
-    "School of Science & Technology Education"
-  ];
+  "SAAT",
+  "SEET",
+  "SET",
+  "SICT",
+  "SLS",
+  "SPS",
+  "SSTE"
+];
 
   const interestOptions = [
     "Spiritual Growth", "Leadership", "Technology", "Music & Arts", 
