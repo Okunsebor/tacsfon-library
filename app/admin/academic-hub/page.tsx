@@ -18,7 +18,17 @@ export default function AdminAcademicHub() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // MATCHING LISTS (The exact same as the Student View)
-  const faculties = ["SAAT", "SEET", "SIPET", "SIT", "SET", "SLS", "SPS", "SICT", "SSTE"];
+  const faculties = [
+  "SAAT",   // School of Agriculture & Agricultural Technology
+  "SEET",   // School of Engineering & Engineering Technology
+  "SIPET",  // School of Infrastructure, Process Engineering & Technology
+  "SIT",    // School of Innovative Technology
+  "SET",    // School of Environmental Technology
+  "SLS",    // School of Life Sciences
+  "SPS",    // School of Physical Sciences  <-- (Added this missing one)
+  "SICT",   // School of Information & Communication Technology
+  "SSTE"    // School of Science & Technology Education
+];
   const levels = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"];
 
   useEffect(() => {
