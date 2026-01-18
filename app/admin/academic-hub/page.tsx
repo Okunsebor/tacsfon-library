@@ -29,7 +29,10 @@ export default function AdminAcademicHub() {
   "SICT",   // School of Information & Communication Technology
   "SSTE"    // School of Science & Technology Education
 ];
-  const levels = ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"];
+
+// Update this list to include "All Levels"
+const levels = ["All Levels", "100 Level", "200 Level", "300 Level", "400 Level", "500 Level"];
+
 
   useEffect(() => {
     fetchResources();
