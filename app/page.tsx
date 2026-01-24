@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
-import { Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, Users, Play } from 'lucide-react';
 
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
@@ -59,61 +59,34 @@ export default function Home() {
 
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
 
-  // --- 🧠 SUPER SMART SORTER (Author + Keyword Intelligence) ---
+  // --- 🧠 SUPER SMART SORTER ---
   const smartCategorize = (book: any) => {
-    // 0. Priority: If Admin manually set a category, respect it.
-    if (book.category && book.category !== 'General Collection' && book.category !== 'General') {
-        return book.category;
-    }
-
+    if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
+    
     const text = (book.title + " " + (book.summary || "")).toLowerCase();
     const author = (book.author || "").toLowerCase();
 
-    // 1. AUTHOR INTELLIGENCE (Check Authors First)
-    // Spiritual Giants
-    if (author.includes('hagin') || author.includes('oyedepo') || author.includes('adeboye') || 
-        author.includes('kumuyi') || author.includes('selman') || author.includes('watchman nee') || 
-        author.includes('spurgeon') || author.includes('copeland') || author.includes('prince') ||
-        author.includes('omartian') || author.includes('c.s. lewis') || author.includes('piper') ||
-        author.includes('lucado') || author.includes('katherine kuhlman') || author.includes('benny hinn')) {
-        return 'Spiritual Growth';
+    // 1. AUTHOR INTELLIGENCE
+    if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
+    if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
+       return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
     }
+    if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
+    if (author.match(/chapman|vallotton/i)) return 'Relationships';
+
+    // 2. KEYWORD INTELLIGENCE
+    if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
+    if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
+    if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
+    if (text.match(/physics|chem|math|calculus|program|code|python|engineer|biology|statistic|law/i)) return 'Academic';
+    if (text.match(/love|marriage|dating|sex|courtship/i)) return 'Relationships';
     
-    // Leadership Experts
-    if (author.includes('maxwell') || author.includes('sinek') || author.includes('covey') || 
-        author.includes('carnegie') || author.includes('myles munroe')) {
-        // Myles Munroe writes both, but often Leadership/Kingdom
-        if(text.includes('prayer') || text.includes('spirit')) return 'Spiritual Growth'; 
-        return 'Leadership';
-    }
-
-    // Finance/Business Gurus
-    if (author.includes('kiyosaki') || author.includes('buffett') || author.includes('dangote') || 
-        author.includes('osuntokun') || author.includes('ramsey')) {
-        return 'Finance & Career';
-    }
-
-    // Relationship Experts
-    if (author.includes('chapman') || author.includes('kris vallotton')) {
-        return 'Relationships';
-    }
-
-    // 2. KEYWORD INTELLIGENCE (Fallback if Author is unknown)
-    if (text.includes('leader') || text.includes('influence') || text.includes('laws') || text.includes('habit') || text.includes('strategy')) return 'Leadership';
-    if (text.includes('prayer') || text.includes('god') || text.includes('spirit') || text.includes('jesus') || text.includes('faith') || text.includes('bible') || text.includes('gospel') || text.includes('church') || text.includes('devotional') || text.includes('holiness')) return 'Spiritual Growth';
-    if (text.includes('money') || text.includes('finance') || text.includes('rich') || text.includes('wealth') || text.includes('business') || text.includes('economy') || text.includes('invest')) return 'Finance & Career';
-    if (text.includes('physics') || text.includes('chem') || text.includes('math') || text.includes('calculus') || text.includes('program') || text.includes('code') || text.includes('python') || text.includes('engineer') || text.includes('biology') || text.includes('statistic') || text.includes('law')) return 'Academic';
-    if (text.includes('love') || text.includes('marriage') || text.includes('dating') || text.includes('sex') || text.includes('courtship')) return 'Relationships';
-    
-    // 3. Fallback
     return 'General Collection';
   };
 
-  // --- GROUPING LOGIC ---
   const categories = books.reduce((acc, book) => {
     let catRaw = smartCategorize(book);
-    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase(); // Normalize case
-
+    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase();
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(book);
     return acc;
@@ -125,7 +98,7 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
 
-      {/* --- HERO SLIDESHOW SECTION --- */}
+      {/* --- 1. HERO SLIDESHOW SECTION --- */}
       <section className="relative h-[85vh] w-full overflow-hidden bg-gray-900 text-white">
         {slides.map((slide, index) => (
           <div 
@@ -140,10 +113,10 @@ export default function Home() {
             />
             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto">
                <div className="animate-slide-up">
-                 <h1 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight tracking-tight drop-shadow-xl">
+                 <h1 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight tracking-tight drop-shadow-xl font-heading">
                     {slide.title}
                  </h1>
-                 <p className="text-sm md:text-lg text-gray-200 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
+                 <p className="text-sm md:text-xl text-gray-200 max-w-2xl mx-auto mb-8 font-light leading-relaxed">
                     {slide.subtitle}
                  </p>
                  <Link href={slide.link} className="inline-flex items-center gap-2 bg-tacsfon-green text-white px-8 py-3 rounded-full font-bold text-base hover:bg-green-700 hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,104,56,0.5)]">
@@ -153,16 +126,12 @@ export default function Home() {
             </div>
           </div>
         ))}
+        {/* Navigation Arrows */}
         <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronLeft size={32} /></button>
         <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronRight size={32} /></button>
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex gap-3">
-           {slides.map((_, idx) => (
-             <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-3 h-3 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-tacsfon-neonGreen w-8' : 'bg-white/50 hover:bg-white'}`} />
-           ))}
-        </div>
       </section>
 
-      {/* --- QUICK ACCESS HUB --- */}
+      {/* --- 2. QUICK ACCESS HUB --- */}
       <section className="max-w-7xl mx-auto px-6 -mt-16 relative z-40">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link href="/resources" className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
@@ -186,7 +155,47 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- BOOK COLLECTIONS SECTION --- */}
+      {/* --- 3. NEW: "LIVING" VIDEO SECTION (Like NIHUB) --- */}
+      <section className="relative w-full h-[500px] mt-24 overflow-hidden flex items-center justify-center">
+          {/* THE VIDEO BACKGROUND */}
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            {/* ⚠️ REPLACE THIS WITH YOUR VIDEO FILE IN PUBLIC FOLDER */}
+            <source src="/community.mp4" type="video/mp4" />
+          </video>
+          
+          {/* THE OVERLAY (Darkens video so text pops) */}
+          {/* Medium darkness, no blur */}
+          <div className="absolute inset-0 bg-black/50"></div>
+
+          {/* THE CONTENT */}
+          <div className="relative z-10 text-center max-w-3xl px-6">
+              <span className="text-tacsfon-neonGreen font-bold tracking-[0.2em] text-sm uppercase mb-4 block animate-fade-in">About Us</span>
+              <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+                  Welcome to the <br/>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-white">Family of Love.</span>
+              </h2>
+              <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                  We believe technology is more than just tools—it is the vehicle for spiritual and academic dominance. 
+                  Join a community where creativity meets divinity.
+              </p>
+              <div className="flex flex-col md:flex-row justify-center gap-4">
+                  <Link href="/about" className="px-8 py-4 bg-tacsfon-green text-white font-bold rounded-xl hover:bg-green-600 transition-all flex items-center justify-center gap-2">
+                     <Users size={20} /> Join Community
+                  </Link>
+                  <Link href="/media" className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-white hover:text-gray-900 transition-all flex items-center justify-center gap-2">
+                     <Play size={20} /> Watch Intro
+                  </Link>
+              </div>
+          </div>
+      </section>
+
+      {/* --- 4. BOOK COLLECTIONS SECTION --- */}
       <section id="collections" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
         
         {/* Header & Search */}
@@ -210,7 +219,6 @@ export default function Home() {
 
         {/* CONTENT DISPLAY LOGIC */}
         {search ? (
-           // STATE 1: SEARCH ACTIVE (Show Grid Results)
            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
               {filteredBooks.length === 0 ? (
                   <div className="col-span-full py-20 text-center text-gray-400">
@@ -222,7 +230,6 @@ export default function Home() {
               ))}
            </div>
         ) : (
-           // STATE 2: NO SEARCH (Show Categories using the SORTED list)
            <div className="space-y-12">
               {sortedCategoryNames.map((categoryName) => (
                  <div key={categoryName} className="space-y-6">
@@ -234,7 +241,6 @@ export default function Home() {
                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categories[categoryName].length} Books</span>
                     </div>
                     
-                    {/* HORIZONTAL SCROLL CONTAINER */}
                     <div className="flex overflow-x-auto pb-8 gap-6 snap-x snap-mandatory scrollbar-hide">
                        {categories[categoryName].map((book: any) => (
                           <div key={book.id} className="min-w-[160px] md:min-w-[200px] snap-start">
@@ -252,7 +258,7 @@ export default function Home() {
   );
 }
 
-// --- HELPER COMPONENT FOR CONSISTENT CARDS ---
+// --- HELPER COMPONENT ---
 function BookCard({ book }: { book: any }) {
    return (
       <Link href={`/book/${book.id}`} className="group block h-full">
