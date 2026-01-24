@@ -121,7 +121,7 @@ export default function Navbar() {
                 
                 {/* My Dashboard - Close to Home */}
                 {user && (
-                  <MobileLink href="/dashboard" icon={<LayoutDashboard size={22}/>} label="My Dashboard" active />
+                  <MobileLink href="/dashboard" icon={<LayoutDashboard size={22}/>} label="Dashboard" active />
                 )}
 
                 <MobileLink href="/resources" icon={<BookOpen size={22}/>} label="Academic Hub" />
