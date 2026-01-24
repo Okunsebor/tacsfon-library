@@ -18,7 +18,8 @@ import {
   User,
   LogOut,
   ChevronRight,
-  Lock 
+  Lock,
+  ClipboardList // ✅ Added for Loan Manager Icon
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,7 +30,7 @@ export default function AdminLayout() {
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]); // Will now hold 'loans'
   const [books, setBooks] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]); 
   const router = useRouter();
@@ -51,7 +52,13 @@ export default function AdminLayout() {
 
   async function fetchData() {
     setLoading(true);
-    const { data: reqs } = await supabase.from('borrow_requests').select('*').order('request_date', { ascending: false });
+    
+    // ✅ UPDATE 1: Fetch from the new 'loans' table instead of 'borrow_requests'
+    const { data: reqs } = await supabase
+        .from('loans')
+        .select('*')
+        .eq('status', 'requested') // Only show pending requests here
+        .order('request_date', { ascending: false });
     setRequests(reqs || []);
 
     const { data: allBooks } = await supabase.from('books').select('*').order('title', { ascending: true });
@@ -66,8 +73,8 @@ export default function AdminLayout() {
   const handleDeleteBook = async (id: number, title: string) => {
     if (!window.confirm(`Permanently delete "${title}"?`)) return;
     
+    // Clean up related data first to prevent database errors
     await supabase.from('loans').delete().eq('book_id', id);
-    await supabase.from('borrow_requests').delete().eq('book_id', id);
     
     const { error } = await supabase.from('books').delete().eq('id', id);
     if (error) alert("Error: " + error.message);
@@ -77,34 +84,36 @@ export default function AdminLayout() {
     }
   };
 
-  const handleRequestAction = async (requestId: number, newStatus: string, bookId: number) => {
-    const request = requests.find(r => r.id === requestId);
-    if (!request) return;
-
-    const { error: updateError } = await supabase
-      .from('borrow_requests')
-      .update({ status: newStatus })
-      .eq('id', requestId);
-
-    if (updateError) {
-      alert("Error updating request: " + updateError.message);
-      return;
-    }
-
-    if (newStatus === 'Approved' && request.request_type === 'physical') {
+  // ✅ UPDATE 2: Updated Logic for Approving Loans directly from Dashboard
+  const handleRequestAction = async (loanId: number, action: 'Approve' | 'Reject', bookId: number) => {
+    
+    if (action === 'Reject') {
+        if(!confirm("Reject this request?")) return;
+        await supabase.from('loans').update({ status: 'rejected' }).eq('id', loanId);
+    } 
+    else if (action === 'Approve') {
+        if(!confirm("Approve this loan?")) return;
+        
+        // 1. Check Stock
         const book = books.find(b => b.id === bookId);
         if (book && book.available_copies > 0) {
-            const { error: stockError } = await supabase
-              .from('books')
-              .update({ available_copies: book.available_copies - 1 })
-              .eq('id', bookId);
+            // 2. Deduct Stock
+            await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
             
-            if (stockError) alert("Request approved, but failed to update stock: " + stockError.message);
+            // 3. Activate Loan & Set Due Date (14 Days)
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 14);
+
+            await supabase.from('loans').update({ 
+                status: 'active',
+                due_date: dueDate.toISOString()
+            }).eq('id', loanId);
         } else {
-            alert("Warning: Request approved, but book stock was already 0.");
+            return alert("Cannot approve: Book is out of stock!");
         }
     }
-    await fetchData(); 
+
+    await fetchData(); // Refresh UI
   };
 
   const NavItem = ({ id, label, icon: Icon, link }: any) => {
@@ -135,12 +144,9 @@ export default function AdminLayout() {
 
   return (
     <AdminGatekeeper>
-      {/* FIX: Added 'pt-20' (Padding Top) to push the entire admin panel down.
-         This ensures it sits BELOW your website's main navbar so the menu button is visible.
-      */}
       <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row pt-20 md:pt-0">
         
-        {/* SIDEBAR: z-[100] ensures it covers everything when open */}
+        {/* SIDEBAR */}
         <aside className={`fixed inset-y-0 left-0 z-[100] w-64 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:block shadow-2xl`}>
           
           <div className="h-20 flex items-center px-6 border-b border-gray-800">
@@ -159,10 +165,15 @@ export default function AdminLayout() {
 
             <div>
               <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Actions</p>
+              {/* ✅ UPDATE 3: Added Loan Manager Link Here */}
+              <NavItem link="/admin/loans" label="Loan Manager" icon={ClipboardList} />
+              
+              <NavItem link="/admin/academic-hub" label="Academic Hub" icon={Folder} />
+              <NavItem link="/admin/upload-media" label="Media Manager" icon={UploadCloud} />
+              
+              <div className="border-t border-gray-800 my-2 pt-2"></div>
               <NavItem link="/admin/add-book" label="Add New Book" icon={PlusCircle} />
               <NavItem link="/admin/import-books" label="Book Hunter (Import)" icon={Globe} />
-              <NavItem link="/admin/upload-media" label="Media Manager" icon={UploadCloud} />
-              <NavItem link="/admin/academic-hub" label="Academic Hub" icon={Folder} />
             </div>
 
             <div className="pt-8 border-t border-gray-800">
@@ -176,7 +187,6 @@ export default function AdminLayout() {
         {/* MAIN CONTENT AREA */}
         <main className="flex-1 flex flex-col h-[calc(100vh-80px)] md:h-screen overflow-hidden">
           
-          {/* MOBILE HEADER: Sticky and visible below global nav */}
           <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between md:hidden shrink-0 sticky top-0 z-40 shadow-md">
              <span className="font-bold text-gray-800">Admin Panel</span>
              <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-gray-100 rounded-lg text-gray-700 hover:bg-gray-200"><Menu size={24} /></button>
@@ -191,9 +201,10 @@ export default function AdminLayout() {
                     {/* TAB: DASHBOARD */}
                     {activeTab === 'dashboard' && (
                       <div className="space-y-6 animate-fade-in">
-                          <h2 className="text-2xl font-bold text-gray-800 mb-4">Pending Requests</h2>
+                          <h2 className="text-2xl font-bold text-gray-800 mb-4">Pending Book Requests</h2>
                           {requests.length === 0 ? (
                               <div className="bg-white p-12 rounded-3xl text-center text-gray-400 border border-gray-100">
+                                  <BookOpen size={40} className="mx-auto mb-2 opacity-20"/>
                                   <p>No pending borrow requests.</p>
                               </div>
                           ) : (
@@ -201,15 +212,26 @@ export default function AdminLayout() {
                                   <div key={req.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
                                       <div>
                                           <h3 className="font-bold text-lg text-gray-800">{req.book_title}</h3>
-                                          <p className="text-sm text-gray-500">{req.student_name} • <span className={`font-bold text-xs uppercase px-2 py-1 rounded ${req.request_type === 'digital' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{req.request_type} Request</span></p>
+                                          <p className="text-sm text-gray-500">
+                                              Requested by: <span className="font-bold text-gray-700">{req.student_email}</span>
+                                          </p>
+                                          <p className="text-xs text-gray-400 mt-1">{new Date(req.request_date).toLocaleDateString()}</p>
                                       </div>
                                       <div className="flex gap-2">
-                                          <button onClick={() => handleRequestAction(req.id, 'Rejected', req.book_id)} className="px-4 py-2 border border-red-200 text-red-500 rounded-xl font-bold hover:bg-red-50">Reject</button>
-                                          <button onClick={() => handleRequestAction(req.id, 'Approved', req.book_id)} className="px-6 py-2 bg-tacsfon-green text-white rounded-xl font-bold shadow-md hover:bg-green-700">Approve</button>
+                                          <button onClick={() => handleRequestAction(req.id, 'Reject', req.book_id)} className="px-4 py-2 border border-red-200 text-red-500 rounded-xl font-bold hover:bg-red-50 text-sm">Reject</button>
+                                          <button onClick={() => handleRequestAction(req.id, 'Approve', req.book_id)} className="px-6 py-2 bg-tacsfon-green text-white rounded-xl font-bold shadow-md hover:bg-green-700 text-sm">Approve Loan</button>
                                       </div>
                                   </div>
                               ))
                           )}
+                          
+                          <div className="mt-8 bg-blue-50 p-6 rounded-2xl border border-blue-100 flex justify-between items-center">
+                              <div>
+                                  <h4 className="font-bold text-blue-900">Manage Active Loans</h4>
+                                  <p className="text-sm text-blue-600">Go to the full Loan Manager to track returns.</p>
+                              </div>
+                              <Link href="/admin/loans" className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold shadow-sm hover:bg-blue-50">Open Manager</Link>
+                          </div>
                       </div>
                     )}
 
@@ -219,7 +241,7 @@ export default function AdminLayout() {
                           <div className="flex justify-between items-center mb-6">
                               <h2 className="text-2xl font-bold text-gray-800">Inventory</h2>
                               <Link href="/admin/add-book" className="bg-tacsfon-orange text-white px-3 py-2 rounded-xl font-bold text-xs md:text-sm shadow-md flex items-center gap-2">
-                                  <PlusCircle size={16}/> Add
+                                  <PlusCircle size={16}/> Add New
                               </Link>
                           </div>
                           
@@ -232,17 +254,17 @@ export default function AdminLayout() {
                                               <tr key={book.id}>
                                                   <td className="p-4 font-bold flex items-center gap-3 min-w-[200px]">
                                                       <div className="w-8 h-12 bg-gray-200 rounded overflow-hidden shrink-0">
-                                                          {book.cover_url && <img src={book.cover_url} className="w-full h-full object-cover"/>}
+                                                          {book.cover_url ? <img src={book.cover_url} className="w-full h-full object-cover"/> : <div className="w-full h-full bg-gray-300"></div>}
                                                       </div>
                                                       <div className="line-clamp-1">{book.title}</div>
                                                   </td>
-                                                  <td className="p-4 font-bold text-gray-800">{book.available_copies}</td>
+                                                  <td className="p-4">
+                                                      <span className={`px-2 py-1 rounded text-xs font-bold ${book.available_copies > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                          {book.available_copies} Copies
+                                                      </span>
+                                                  </td>
                                                   <td className="p-4 text-right">
                                                       <div className="flex items-center justify-end gap-2">
-                                                          {!book.pdf_url && !book.ia_id && (
-                                                              <a href={`https://www.google.com/search?q=filetype:pdf+${encodeURIComponent(book.title)}`} target="_blank" className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100" title="Find PDF"><Search size={16}/></a>
-                                                          )}
-                                                          <Link href={`/admin/edit-book/${book.id}`} className="p-2 text-gray-400 hover:text-blue-600 transition-colors"><Edit size={18} /></Link>
                                                           <button onClick={() => handleDeleteBook(book.id, book.title)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                                                       </div>
                                                   </td>

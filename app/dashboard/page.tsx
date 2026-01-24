@@ -11,7 +11,10 @@ import {
   Award, 
   Calendar, 
   TrendingUp, 
-  ArrowRight
+  ArrowRight,
+  CheckCircle,   // New
+  AlertCircle,   // New
+  MapPin         // New
 } from 'lucide-react';
 
 export default function StudentDashboard() {
@@ -22,8 +25,9 @@ export default function StudentDashboard() {
   const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
   const [greeting, setGreeting] = useState('');
   
-  // --- NEW: Real Data States ---
+  // --- REAL DATA STATES ---
   const [recentBooks, setRecentBooks] = useState<any[]>([]);
+  const [loans, setLoans] = useState<any[]>([]); // ✅ Added: State for physical loans
   const [stats, setStats] = useState({
     booksRead: 0,
     hoursRead: 0,
@@ -55,8 +59,8 @@ export default function StudentDashboard() {
       const fullName = session.user.user_metadata?.full_name;
       if (fullName) setUserName(fullName.split(' ')[0]);
 
-      // --- A. FETCH READING HISTORY (For Stats & Activity) ---
-      const { data: history, error: historyError } = await supabase
+      // --- A. FETCH READING HISTORY ---
+      const { data: history } = await supabase
         .from('reading_history')
         .select(`
             last_read_at,
@@ -67,23 +71,29 @@ export default function StudentDashboard() {
         .order('last_read_at', { ascending: false });
 
       const historyData = history || [];
-      setRecentBooks(historyData); // Update Recent Activity List
+      setRecentBooks(historyData);
 
-      // --- B. FETCH ACTIVE BORROWS ---
-      const { count: borrowCount } = await supabase
-        .from('borrow_requests')
-        .select('*', { count: 'exact', head: true })
+      // --- B. FETCH LOANS (Physical Books) --- ✅ NEW
+      const { data: loanData } = await supabase
+        .from('loans')
+        .select('*')
         .eq('student_email', email)
-        .eq('status', 'Pending');
+        .order('request_date', { ascending: false });
+      
+      const allLoans = loanData || [];
+      setLoans(allLoans);
+
+      // Filter active loans for stats
+      const activeCount = allLoans.filter((l: any) => l.status === 'active').length;
 
       // --- C. CALCULATE STATS ---
       setStats({
         booksRead: historyData.length,
-        hoursRead: historyData.length * 2, // Estimate: 2 hours per book opened
-        activeBorrows: borrowCount || 0
+        hoursRead: historyData.length * 2, 
+        activeBorrows: activeCount // ✅ Updated to use real loan count
       });
 
-      // --- D. FETCH RECOMMENDED (Random 4 books) ---
+      // --- D. FETCH RECOMMENDED ---
       const { data: books } = await supabase
         .from('books')
         .select('*')
@@ -100,6 +110,10 @@ export default function StudentDashboard() {
     await supabase.auth.signOut();
     router.replace('/student-login'); 
   };
+
+  // ✅ Helper variables for UI
+  const pendingLoans = loans.filter(l => l.status === 'requested');
+  const activeLoans = loans.filter(l => l.status === 'active');
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -168,7 +182,7 @@ export default function StudentDashboard() {
             {/* --- LEFT COLUMN: STATS & ACTIONS --- */}
             <div className="lg:col-span-2 space-y-8">
                 
-                {/* Stats Row (CONNECTED TO REAL DATA) */}
+                {/* Stats Row */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
                         <div className="flex items-center gap-3 text-blue-600 mb-2">
@@ -189,6 +203,47 @@ export default function StudentDashboard() {
                         <span className="text-3xl font-extrabold text-gray-900">{stats.activeBorrows}</span>
                     </div>
                 </div>
+
+                {/* ✅ NEW: PHYSICAL LIBRARY STATUS (Loans & Requests) */}
+                {(activeLoans.length > 0 || pendingLoans.length > 0) && (
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-in fade-in">
+                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <MapPin size={20} className="text-tacsfon-green"/> My Book Bag
+                        </h3>
+                        <div className="space-y-3">
+                            {/* Pending Requests */}
+                            {pendingLoans.map(loan => (
+                                <div key={loan.id} className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-bold text-gray-800 text-sm">{loan.book_title}</p>
+                                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
+                                            <AlertCircle size={12}/> Waiting for Librarian approval...
+                                        </p>
+                                    </div>
+                                    <span className="text-xs font-bold bg-white text-orange-600 px-3 py-1 rounded-full shadow-sm">Pending</span>
+                                </div>
+                            ))}
+
+                            {/* Active Loans */}
+                            {activeLoans.map(loan => (
+                                <div key={loan.id} className="p-4 bg-green-50 rounded-xl border border-green-100 flex items-center justify-between">
+                                    <div>
+                                        <p className="font-bold text-gray-800 text-sm">{loan.book_title}</p>
+                                        <p className="text-xs text-green-700 flex items-center gap-1 mt-1">
+                                            <CheckCircle size={12}/> Due: {new Date(loan.due_date).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xl font-bold text-gray-800 leading-none">
+                                            {Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                                        </div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase">Days Left</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Quick Actions */}
                 <div>
@@ -224,7 +279,7 @@ export default function StudentDashboard() {
                 <div>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-gray-900">Recommended For You</h3>
-                        <Link href="/#collections" className="text-xs font-bold text-tacsfon-green hover:underline">View Library</Link>
+                        <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:underline">View Library</Link>
                     </div>
                     
                     {recommendedBooks.length === 0 ? (
@@ -252,7 +307,7 @@ export default function StudentDashboard() {
 
             </div>
 
-            {/* --- RIGHT COLUMN: RECENT ACTIVITY (DYNAMIC) --- */}
+            {/* --- RIGHT COLUMN: RECENT ACTIVITY --- */}
             <div className="space-y-6">
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-full">
                     <h3 className="font-bold text-gray-900 mb-6">Recent Activity</h3>
@@ -266,13 +321,12 @@ export default function StudentDashboard() {
                             <p className="text-xs text-gray-400 max-w-[200px]">
                                 Books you read or download will appear here automatically.
                             </p>
-                            <Link href="/#collections" className="mt-6 px-6 py-2 bg-tacsfon-green text-white text-xs font-bold rounded-full hover:bg-green-700 transition-colors">
+                            <Link href="/library" className="mt-6 px-6 py-2 bg-tacsfon-green text-white text-xs font-bold rounded-full hover:bg-green-700 transition-colors">
                                 Start Reading
                             </Link>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {/* Map through Recent Books */}
                             {recentBooks.slice(0, 4).map((entry: any) => (
                                 <Link key={entry.book_id} href={`/book/${entry.book_id}`} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors group">
                                     <div className="h-16 w-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
@@ -291,7 +345,7 @@ export default function StudentDashboard() {
                             ))}
                             
                             <div className="pt-4 border-t border-gray-100 text-center">
-                                <Link href="/#collections" className="text-xs font-bold text-tacsfon-green hover:underline">View Full Library</Link>
+                                <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:underline">View Full Library</Link>
                             </div>
                         </div>
                     )}
