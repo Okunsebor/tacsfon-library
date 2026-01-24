@@ -1,13 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, Menu, X } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Mic2, Info, Phone, LogIn } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient'; // Ensure you have this import for auth check
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Check auth for "My Dashboard" visibility logic
+  useEffect(() => {
+    async function getUser() {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+    }
+    getUser();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -15,12 +26,23 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
+  // Close menu when route changes
   useEffect(() => setIsOpen(false), [pathname]);
+
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
   
   const isActive = (path: string) => pathname === path ? "text-tacsfon-green font-bold" : "text-gray-500 hover:text-tacsfon-green font-medium";
 
   return (
     <>
+      {/* ======================= PC / DESKTOP VIEW (UNCHANGED) ======================= */}
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'} py-1 border-b border-gray-100`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
@@ -49,12 +71,10 @@ export default function Navbar() {
                   </button>
                   <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-64 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2">
                       <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden p-2 ring-1 ring-black/5">
-                          {/* MOVED: Student Portal Here */}
                           <Link href="/student-login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors">
                               <div className="w-8 h-8 rounded-full bg-green-100 text-tacsfon-green flex items-center justify-center"><User size={16} /></div>
                               <div><h4 className="text-sm font-bold text-gray-800">Student Portal</h4></div>
                           </Link>
-                          {/* MOVED: Librarian Portal Here */}
                           <Link href="/admin/login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors mt-1">
                               <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><ShieldCheck size={16} /></div>
                               <div><h4 className="text-sm font-bold text-gray-800">Librarian Portal</h4></div>
@@ -66,7 +86,7 @@ export default function Navbar() {
               <Link href="/contact" className={`text-sm ${isActive('/contact')}`}>Contact</Link>
             </div>
 
-            {/* 3. RIGHT SIDE: USER DASHBOARD ICON (Replaced the Button) */}
+            {/* 3. RIGHT SIDE: USER DASHBOARD ICON */}
             <div className="hidden lg:flex items-center">
               <Link 
                 href="/dashboard" 
@@ -78,24 +98,73 @@ export default function Navbar() {
             </div>
 
             {/* 4. MOBILE MENU BTN */}
-            <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-2 text-gray-800">
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden p-2 text-gray-800 focus:outline-none">
+              {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* 5. MOBILE MENU OVERLAY */}
-      <div className={`fixed inset-0 z-40 bg-white/95 backdrop-blur-xl transition-all duration-500 lg:hidden flex flex-col pt-20 px-6 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
-          <div className="space-y-6">
-            <Link href="/" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Home</Link>
-            <Link href="/resources" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Academic Hub</Link>
-            <Link href="/media" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>Media & Sermons</Link>
-            <Link href="/student-login" className="text-xl font-bold text-tacsfon-green block" onClick={() => setIsOpen(false)}>Student Portal</Link>
-            <Link href="/admin/login" className="text-xl font-bold text-orange-600 block" onClick={() => setIsOpen(false)}>Librarian Portal</Link>
-            <Link href="/dashboard" className="text-xl font-bold text-gray-900 block" onClick={() => setIsOpen(false)}>My Dashboard</Link>
+      {/* ======================= 5. NEW FUTURISTIC MOBILE MENU OVERLAY ======================= */}
+      <div className={`fixed inset-0 z-40 bg-white transition-transform duration-500 ease-in-out lg:hidden flex flex-col pt-24 px-6 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          
+          {/* Background Decorative Element (The "Futuristic" Blob) */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+          <div className="flex flex-col h-full overflow-y-auto pb-10 relative z-10">
+            
+            {/* PRIMARY NAVIGATION */}
+            <div className="space-y-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Menu</p>
+                
+                <MobileLink href="/" icon={<Home size={22}/>} label="Home" />
+                
+                {/* My Dashboard - Close to Home */}
+                {user && (
+                  <MobileLink href="/dashboard" icon={<LayoutDashboard size={22}/>} label="My Dashboard" active />
+                )}
+
+                <MobileLink href="/resources" icon={<BookOpen size={22}/>} label="Academic Hub" />
+                <MobileLink href="/media" icon={<Mic2 size={22}/>} label="Media & Sermons" />
+            </div>
+
+            <hr className="my-6 border-gray-100" />
+
+            {/* SECONDARY NAVIGATION */}
+            <div className="space-y-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Support</p>
+                <MobileLink href="/about" icon={<Info size={22}/>} label="About Us" />
+                <MobileLink href="/contact" icon={<Phone size={22}/>} label="Contact Us" />
+            </div>
+
+            {/* PORTALS (Bottom of menu) */}
+            <div className="mt-auto pt-8 space-y-4">
+                {/* Student Sign In (Green) */}
+                <Link href="/student-login" className="flex items-center justify-center gap-3 w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+                   <LogIn size={20} /> Student Sign In
+                </Link>
+
+                {/* Librarian Portal (Orange) */}
+                <Link href="/admin/login" className="flex items-center justify-center gap-3 w-full bg-orange-50 text-orange-600 py-4 rounded-2xl font-bold text-lg border border-orange-100 hover:bg-orange-100 transition-colors">
+                   <ShieldCheck size={20} /> Librarian Portal
+                </Link>
+            </div>
+
           </div>
       </div>
     </>
+  );
+}
+
+// --- Helper Component for consistent Mobile Links ---
+function MobileLink({ href, icon, label, active = false }: { href: string, icon: any, label: string, active?: boolean }) {
+  return (
+      <Link 
+          href={href} 
+          className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${active ? 'bg-green-50 text-tacsfon-green font-extrabold' : 'text-gray-700 font-bold hover:bg-gray-50'}`}
+      >
+          <span className={`${active ? 'text-tacsfon-green' : 'text-gray-400'}`}>{icon}</span>
+          <span className="text-lg tracking-tight">{label}</span>
+      </Link>
   );
 }
