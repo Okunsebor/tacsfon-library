@@ -165,8 +165,7 @@ export default function Home() {
             playsInline 
             className="absolute inset-0 w-full h-full object-cover"
           >
-            {/* ⚠️ REPLACE THIS WITH YOUR VIDEO FILE IN PUBLIC FOLDER */}
-            <source src="/community.mp4" type="video/mp4" />
+            <source src="https://your-project.supabase.co/storage/v1/object/public/assets/community.mp4" type="video/mp4" />
           </video>
           
           {/* THE OVERLAY (Darkens video so text pops) */}
