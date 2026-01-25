@@ -3,10 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
-import { 
-  Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, 
-  Users, Play, Flame, GraduationCap, Shield, Heart 
-} from 'lucide-react';
+import { Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, Users, Play } from 'lucide-react';
 
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
@@ -158,21 +155,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- 3. VIDEO SECTION --- */}
+      {/* --- 3. NEW: "LIVING" VIDEO SECTION (Like NIHUB) --- */}
       <section className="relative w-full h-[500px] mt-24 overflow-hidden flex items-center justify-center">
+          {/* THE VIDEO BACKGROUND */}
           <video 
             autoPlay 
             loop 
             muted 
             playsInline 
-            
             className="absolute inset-0 w-full h-full object-cover"
           >
-            <source src="https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />
+            <source src= "https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />
           </video>
           
+          {/* THE OVERLAY (Darkens video so text pops) */}
+          {/* Medium darkness, no blur */}
           <div className="absolute inset-0 bg-black/50"></div>
 
+          {/* THE CONTENT */}
           <div className="relative z-10 text-center max-w-3xl px-6">
               <span className="text-tacsfon-neonGreen font-bold tracking-[0.2em] text-sm uppercase mb-4 block animate-fade-in">About Us</span>
               <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
@@ -183,82 +183,18 @@ export default function Home() {
                   We believe technology is more than just tools—it is the vehicle for spiritual and academic dominance. 
                   Join a community where creativity meets divinity.
               </p>
-              
-              <div className="flex justify-center">
-                  <Link href="/about" className="px-10 py-4 bg-tacsfon-green text-white font-bold rounded-xl hover:bg-green-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/50 hover:scale-105">
+              <div className="flex flex-col md:flex-row justify-center gap-4">
+                  <Link href="/about" className="px-8 py-4 bg-tacsfon-green text-white font-bold rounded-xl hover:bg-green-600 transition-all flex items-center justify-center gap-2">
                      <Users size={20} /> Join Community
+                  </Link>
+                  <Link href="/media" className="px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-xl hover:bg-white hover:text-gray-900 transition-all flex items-center justify-center gap-2">
+                     <Play size={20} /> Watch Intro
                   </Link>
               </div>
           </div>
       </section>
 
-      {/* --- 4. NEW: TACSFON CORE PILLARS (Refined & Professional) --- */}
-      <section className="py-24 bg-gradient-to-b from-[#0a1f13] to-gray-900 text-white">
-          <div className="max-w-7xl mx-auto px-6">
-              <div className="text-center mb-16">
-                  <span className="text-tacsfon-green font-bold tracking-[0.2em] uppercase text-sm">Our Core Values</span>
-                  <h2 className="text-4xl md:text-5xl font-extrabold mt-2 text-white">Who We Are</h2>
-                  <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
-                      "Let no man despise thy youth." We are more than a fellowship; we are a training ground for life—where spiritual fervor meets academic excellence.
-                  </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Pillar 1 */}
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 bg-orange-500/20 text-orange-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Flame size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 text-white">Spiritual Grounding</h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
-                          Rooted in the Apostolic faith, we foster deep spiritual maturity through consistent prayer, sound doctrine, and the study of the Word.
-                      </p>
-                  </div>
-
-                  {/* Pillar 2 */}
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <GraduationCap size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 text-white">Academic Excellence</h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
-                          We believe spirituality and intellect go hand in hand. Our environment provides the resources and peer support needed to excel in your studies.
-                      </p>
-                  </div>
-
-                  {/* Pillar 3 */}
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 bg-green-500/20 text-green-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Shield size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 text-white">Service & Integrity</h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
-                          We are committed to raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom.
-                      </p>
-                  </div>
-
-                  {/* Pillar 4 */}
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 bg-purple-500/20 text-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                          <Heart size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-3 text-white">Supportive Community</h3>
-                      <p className="text-gray-400 text-sm leading-relaxed">
-                          A home away from home. We are a family that prioritizes the mental, emotional, and personal well-being of every member.
-                      </p>
-                  </div>
-              </div>
-              
-              <div className="mt-12 text-center">
-                   {/* ✅ REDIRECT TO ABOUT PAGE */}
-                   <Link href="/about" className="inline-flex items-center gap-2 text-white border border-white/20 px-8 py-3 rounded-full hover:bg-white hover:text-black transition-all font-bold">
-                       Read Our Full History <ArrowRight size={18}/>
-                   </Link>
-              </div>
-          </div>
-      </section>
-
-      {/* --- 5. BOOK COLLECTIONS SECTION --- */}
+      {/* --- 4. BOOK COLLECTIONS SECTION --- */}
       <section id="collections" className="max-w-7xl mx-auto px-6 py-24 space-y-16">
         
         {/* Header & Search */}
