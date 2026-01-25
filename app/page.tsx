@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Added useRef
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
@@ -8,6 +8,36 @@ import {
   Users, Play, Flame, GraduationCap, Shield, Heart 
 } from 'lucide-react';
 
+// --- NEW COMPONENT: SPLASH SCREEN (Book Wheel) ---
+function Preloader() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-50">
+      
+      {/* 1. The Spinning Book Wheel */}
+      <div className="relative w-40 h-40 mb-6 animate-[spin_4s_linear_infinite]">
+         <img 
+           src="/splash-icon.png" 
+           alt="Loading..." 
+           className="w-full h-full object-contain drop-shadow-xl" 
+         />
+      </div>
+
+      {/* 2. Brand Name (Your Gradient Edit Preserved) */}
+      <h1 className="text-3xl font-extrabold text-gray-800 tracking-widest uppercase mb-4 animate-pulse">
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-orange-500">TACSFON LIBRARY</span>
+      </h1>
+
+      {/* 3. The Green Dots (Loading Indicator) */}
+      <div className="flex gap-3">
+        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce"></div>
+      </div>
+      
+    </div>
+  );
+}
+
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -15,6 +45,9 @@ export default function Home() {
   
   // 1. LOADING STATE
   const [isLoading, setIsLoading] = useState(true);
+
+  // ⚡ REF FOR AUTO-SCROLL CAROUSEL
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- SLIDER CONFIGURATION ---
   const slides = [
@@ -55,16 +88,11 @@ export default function Home() {
   const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
-  // 2. UPDATED DATA FETCHING (WITH SPLASH SCREEN DELAY)
+  // 2. UPDATED DATA FETCHING
   useEffect(() => {
     async function initData() {
-      // Step A: Start a minimum timer (e.g., 2 seconds) for branding
       const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2500));
-      
-      // Step B: Start fetching data
       const fetchData = supabase.from('books').select('*').order('title', { ascending: true });
-
-      // Step C: Wait for BOTH to finish
       const [_, dataResult] = await Promise.all([minLoaderTime, fetchData]);
 
       if (dataResult.error) {
@@ -72,13 +100,33 @@ export default function Home() {
       } else {
           setBooks(dataResult.data || []);
       }
-      
-      // Step D: Remove Splash Screen
       setIsLoading(false);
     }
-
     initData();
   }, []);
+
+  // ⚡ 3. NEW AUTO-SCROLL LOGIC FOR PILLARS
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const scrollInterval = setInterval(() => {
+      // Calculate widths: card width + gap (16px/1rem)
+      const cardWidth = scrollContainer.firstElementChild?.clientWidth || 0;
+      const gap = 16; 
+      const scrollAmount = cardWidth + gap;
+      const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+
+      // Logic: If near end, scroll back to 0. Else, scroll next.
+      if (scrollContainer.scrollLeft >= maxScroll - 10) {
+        scrollContainer.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        scrollContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      }
+    }, 3000); // Moves every 3 seconds
+
+    return () => clearInterval(scrollInterval);
+  }, [isLoading]); // Wait for loading to finish
 
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -127,7 +175,7 @@ export default function Home() {
       <Navbar />
 
       {/* --- 1. HERO SLIDESHOW SECTION --- */}
-      {/* UPDATE: Adjusted height for mobile (65vh) vs desktop (85vh) */}
+      {/* ⚡ MOBILE FIX: Reduced height to 65vh on mobile */}
       <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden bg-gray-900 text-white">
         {slides.map((slide, index) => (
           <div 
@@ -155,13 +203,13 @@ export default function Home() {
             </div>
           </div>
         ))}
-        {/* Navigation Arrows (Hidden on mobile) */}
+        {/* Navigation Arrows (Hidden on Mobile) */}
         <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronLeft size={32} /></button>
         <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronRight size={32} /></button>
       </section>
 
       {/* --- 2. QUICK ACCESS HUB --- */}
-      {/* UPDATE: Adjusted negative margin (-mt-10) and padding (px-4) for mobile */}
+      {/* ⚡ MOBILE FIX: Compact view with reduced margins */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-10 md:-mt-16 relative z-40">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Link href="/resources" className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
@@ -186,13 +234,13 @@ export default function Home() {
       </section>
 
       {/* --- 3. VIDEO SECTION --- */}
-      {/* UPDATE: Adjusted height (400px) and text sizing for mobile */}
+      {/* ⚡ MOBILE FIX: Height reduced to 400px */}
       <section className="relative w-full h-[400px] md:h-[500px] mt-16 md:mt-24 overflow-hidden flex items-center justify-center">
           <video 
             autoPlay 
             loop 
             muted 
-            playsInline
+            playsInline 
             className="absolute inset-0 w-full h-full object-cover"
           >
             <source src="https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />
@@ -243,8 +291,11 @@ export default function Home() {
                   </p>
               </div>
 
-              {/* Cards Grid - UPDATE: Swaps to Horizontal Scroll (Netflix style) on Mobile */}
-              <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 md:grid md:grid-cols-4 md:gap-8 md:pb-0 scrollbar-hide">
+              {/* Cards Grid - ⚡ MOBILE FIX: Horizontal Auto-Scroll (Netflix style) */}
+              <div 
+                ref={scrollRef} // <--- ATTACHED SCROLL REF HERE
+                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 md:grid md:grid-cols-4 md:gap-8 md:pb-0 scrollbar-hide scroll-smooth"
+              >
                   
                   {/* Pillar 1: Spiritual */}
                   <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
@@ -342,7 +393,7 @@ export default function Home() {
                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categories[categoryName].length} Books</span>
                     </div>
                     
-                    {/* Horizontal Scroll for Books */}
+                    {/* Horizontal Scroll for Books - ⚡ MOBILE FIX */}
                     <div className="flex overflow-x-auto pb-8 gap-4 md:gap-6 snap-x snap-mandatory scrollbar-hide">
                        {categories[categoryName].map((book: any) => (
                           <div key={book.id} className="min-w-[140px] md:min-w-[200px] snap-start">
@@ -378,33 +429,4 @@ function BookCard({ book }: { book: any }) {
          <p className="text-xs text-gray-500 font-medium line-clamp-1">{book.author}</p>
       </Link>
    );
-}
-
-// --- NEW COMPONENT: SPLASH SCREEN ---
-function Preloader() {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
-      {/* Animated Logo/Brand */}
-      <div className="relative mb-8 animate-pulse">
-         {/* You can replace this with an <img> tag of your actual logo if you want */}
-         <div className="flex items-center gap-2">
-            <span className="h-8 w-8 bg-tacsfon-green rounded-tr-xl rounded-bl-xl"></span>
-            <span className="text-2xl font-extrabold text-gray-900 tracking-tight">
-              TACSFON<span className="text-tacsfon-green">LIB</span>
-            </span>
-         </div>
-      </div>
-
-      {/* The Bouncing Dots (MetaApi Style) */}
-      <div className="flex gap-2">
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce"></div>
-      </div>
-      
-      <p className="mt-4 text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">
-        Loading Resources...
-      </p>
-    </div>
-  );
 }
