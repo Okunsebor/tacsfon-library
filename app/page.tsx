@@ -8,38 +8,12 @@ import {
   Users, Play, Flame, GraduationCap, Shield, Heart 
 } from 'lucide-react';
 
-// --- NEW COMPONENT: SPLASH SCREEN ---
-function Preloader() {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
-      {/* Animated Logo */}
-      <div className="relative mb-8 animate-pulse">
-         <div className="flex items-center gap-2">
-            <span className="h-8 w-8 bg-tacsfon-green rounded-tr-xl rounded-bl-xl"></span>
-            <span className="text-2xl font-extrabold text-gray-900 tracking-tight">
-              TACSFON<span className="text-tacsfon-green">LIB</span>
-            </span>
-         </div>
-      </div>
-
-      {/* Bouncing Dots */}
-      <div className="flex gap-2">
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce"></div>
-      </div>
-      
-      <p className="mt-4 text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">
-        Loading Resources...
-      </p>
-    </div>
-  );
-}
-
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // 1. LOADING STATE
   const [isLoading, setIsLoading] = useState(true);
 
   // --- SLIDER CONFIGURATION ---
@@ -70,6 +44,7 @@ export default function Home() {
     }
   ];
 
+  // Slider Timer
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -80,12 +55,16 @@ export default function Home() {
   const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
+  // 2. UPDATED DATA FETCHING (WITH SPLASH SCREEN DELAY)
   useEffect(() => {
     async function initData() {
-      // Minimum loader time for branding
-      const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2000));
+      // Step A: Start a minimum timer (e.g., 2 seconds) for branding
+      const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Step B: Start fetching data
       const fetchData = supabase.from('books').select('*').order('title', { ascending: true });
 
+      // Step C: Wait for BOTH to finish
       const [_, dataResult] = await Promise.all([minLoaderTime, fetchData]);
 
       if (dataResult.error) {
@@ -93,8 +72,11 @@ export default function Home() {
       } else {
           setBooks(dataResult.data || []);
       }
+      
+      // Step D: Remove Splash Screen
       setIsLoading(false);
     }
+
     initData();
   }, []);
 
@@ -103,14 +85,19 @@ export default function Home() {
   // --- 🧠 SUPER SMART SORTER ---
   const smartCategorize = (book: any) => {
     if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
+    
     const text = (book.title + " " + (book.summary || "")).toLowerCase();
     const author = (book.author || "").toLowerCase();
 
+    // 1. AUTHOR INTELLIGENCE
     if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
-    if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
+    if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
+       return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
+    }
     if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
     if (author.match(/chapman|vallotton/i)) return 'Relationships';
 
+    // 2. KEYWORD INTELLIGENCE
     if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
     if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
     if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
@@ -130,14 +117,17 @@ export default function Home() {
 
   const sortedCategoryNames = Object.keys(categories).sort();
 
-  if (isLoading) return <Preloader />;
+  // 3. SHOW PRELOADER IF LOADING
+  if (isLoading) {
+    return <Preloader />;
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
 
       {/* --- 1. HERO SLIDESHOW SECTION --- */}
-      {/* ⚡ MOBILE FIX: Reduced height from 85vh to 65vh on mobile so users see content below */}
+      {/* UPDATE: Adjusted height for mobile (65vh) vs desktop (85vh) */}
       <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden bg-gray-900 text-white">
         {slides.map((slide, index) => (
           <div 
@@ -165,13 +155,13 @@ export default function Home() {
             </div>
           </div>
         ))}
-        {/* Navigation Arrows - Hidden on Mobile */}
+        {/* Navigation Arrows (Hidden on mobile) */}
         <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronLeft size={32} /></button>
         <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronRight size={32} /></button>
       </section>
 
       {/* --- 2. QUICK ACCESS HUB --- */}
-      {/* ⚡ MOBILE FIX: Reduced margin-top (-mt-10) and padding (p-5) for compact view */}
+      {/* UPDATE: Adjusted negative margin (-mt-10) and padding (px-4) for mobile */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-10 md:-mt-16 relative z-40">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Link href="/resources" className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
@@ -196,14 +186,13 @@ export default function Home() {
       </section>
 
       {/* --- 3. VIDEO SECTION --- */}
-      {/* ⚡ MOBILE FIX: Height reduced to 400px on mobile */}
+      {/* UPDATE: Adjusted height (400px) and text sizing for mobile */}
       <section className="relative w-full h-[400px] md:h-[500px] mt-16 md:mt-24 overflow-hidden flex items-center justify-center">
           <video 
             autoPlay 
             loop 
             muted 
-            playsInline 
-            
+            playsInline
             className="absolute inset-0 w-full h-full object-cover"
           >
             <source src="https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />
@@ -219,6 +208,7 @@ export default function Home() {
               </h2>
               <p className="text-gray-300 text-base md:text-lg mb-6 md:mb-8 leading-relaxed">
                   We believe technology is more than just tools—it is the vehicle for spiritual and academic dominance. 
+                  Join a community where creativity meets divinity.
               </p>
               
               <div className="flex justify-center">
@@ -229,10 +219,10 @@ export default function Home() {
           </div>
       </section>
 
-      {/* --- 4. NEW: TACSFON CORE PILLARS --- */}
-      {/* ⚡ MOBILE FIX: Horizontal Swipe Container (snap-x) on Mobile */}
+      {/* --- 4. NEW: TACSFON CORE PILLARS (Professional Light Theme) --- */}
       <section className="relative py-16 md:py-24 bg-white overflow-hidden">
           
+          {/* Subtle "Alive" Background Gradients */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
               <div className="absolute -top-[20%] -left-[10%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-green-50/50 rounded-full blur-[100px] animate-pulse-slow"></div>
               <div className="absolute top-[40%] -right-[10%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-emerald-50/50 rounded-full blur-[100px]"></div>
@@ -240,6 +230,7 @@ export default function Home() {
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6">
               
+              {/* Header */}
               <div className="text-center mb-10 md:mb-20">
                   <span className="inline-block py-1 px-3 rounded-full bg-green-50 border border-green-100 text-tacsfon-green font-extrabold tracking-[0.15em] uppercase text-[10px] md:text-xs shadow-sm mb-4">
                       Our Core Values
@@ -247,55 +238,61 @@ export default function Home() {
                   <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-emerald-200">The Four Pillars</span>
                   </h2>
+                  <p className="text-gray-500 mt-4 md:mt-5 max-w-2xl mx-auto text-base md:text-lg leading-relaxed font-medium">
+                      "Let no man despise thy youth." We are building a sanctuary where intellectual giants and spiritual generals are forged in the same fire.
+                  </p>
               </div>
 
-              {/* ⚡ GRID TRANSFORMS INTO SCROLLABLE LIST ON MOBILE */}
+              {/* Cards Grid - UPDATE: Swaps to Horizontal Scroll (Netflix style) on Mobile */}
               <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 md:grid md:grid-cols-4 md:gap-8 md:pb-0 scrollbar-hide">
                   
-                  {/* Pillar 1 */}
-                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-lg md:shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
+                  {/* Pillar 1: Spiritual */}
+                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Flame size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900 group-hover:text-tacsfon-green">Spiritual Grounding</h3>
-                      <p className="text-gray-500 text-sm leading-relaxed">
-                          Rooted in the Apostolic faith, fostering deep maturity through consistent prayer and sound doctrine.
+                      <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Spiritual Grounding</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
+                          Rooted in the Apostolic faith, fostering deep maturity through consistent prayer, sound doctrine, and the study of the Word.
                       </p>
                   </div>
 
-                  {/* Pillar 2 */}
-                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-lg md:shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
+                  {/* Pillar 2: Academic */}
+                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <GraduationCap size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900 group-hover:text-tacsfon-green">Academic Dominion</h3>
-                      <p className="text-gray-500 text-sm leading-relaxed">
-                          Spirituality and intellect go hand in hand. We provide resources to excel and lead in your field.
+                      <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Academic Dominion</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
+                          Spirituality and intellect go hand in hand. We provide the resources and peer support needed to excel and lead in your field.
                       </p>
                   </div>
 
-                  {/* Pillar 3 */}
-                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-lg md:shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
+                  {/* Pillar 3: Service */}
+                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Shield size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900 group-hover:text-tacsfon-green">Service & Integrity</h3>
-                      <p className="text-gray-500 text-sm leading-relaxed">
-                          Raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom.
+                      <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Service & Integrity</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
+                          Raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom and humanity.
                       </p>
                   </div>
 
-                  {/* Pillar 4 */}
-                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-lg md:shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
+                  {/* Pillar 4: Family */}
+                  <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Heart size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
-                      <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900 group-hover:text-tacsfon-green">The Family of Love</h3>
-                      <p className="text-gray-500 text-sm leading-relaxed">
-                          A home away from home. We prioritize the mental, emotional, and personal well-being of every member.
+                      <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">The Family of Love</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
+                          A home away from home. We prioritize the mental, emotional, and personal well-being of every single member.
                       </p>
                   </div>
+
               </div>
+              
+              
           </div>
       </section>
 
@@ -381,4 +378,33 @@ function BookCard({ book }: { book: any }) {
          <p className="text-xs text-gray-500 font-medium line-clamp-1">{book.author}</p>
       </Link>
    );
+}
+
+// --- NEW COMPONENT: SPLASH SCREEN ---
+function Preloader() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+      {/* Animated Logo/Brand */}
+      <div className="relative mb-8 animate-pulse">
+         {/* You can replace this with an <img> tag of your actual logo if you want */}
+         <div className="flex items-center gap-2">
+            <span className="h-8 w-8 bg-tacsfon-green rounded-tr-xl rounded-bl-xl"></span>
+            <span className="text-2xl font-extrabold text-gray-900 tracking-tight">
+              TACSFON<span className="text-tacsfon-green">LIB</span>
+            </span>
+         </div>
+      </div>
+
+      {/* The Bouncing Dots (MetaApi Style) */}
+      <div className="flex gap-2">
+        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+        <div className="w-3 h-3 bg-tacsfon-green rounded-full animate-bounce"></div>
+      </div>
+      
+      <p className="mt-4 text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">
+        Loading Resources...
+      </p>
+    </div>
+  );
 }
