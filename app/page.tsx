@@ -1,19 +1,17 @@
 'use client';
-import { useState, useEffect, useRef } from 'react'; // Added useRef
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { 
   Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, 
-  Users, Play, Flame, GraduationCap, Shield, Heart 
+  Users, Play, Flame, GraduationCap, Shield, Heart, TrendingUp 
 } from 'lucide-react';
 
-// --- NEW COMPONENT: SPLASH SCREEN (Book Wheel) ---
+// --- COMPONENT: SPLASH SCREEN ---
 function Preloader() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-50">
-      
-      {/* 1. The Spinning Book Wheel */}
       <div className="relative w-40 h-40 mb-6 animate-[spin_4s_linear_infinite]">
          <img 
            src="/splash-icon.png" 
@@ -21,32 +19,25 @@ function Preloader() {
            className="w-full h-full object-contain drop-shadow-xl" 
          />
       </div>
-
-      {/* 2. Brand Name (Your Gradient Edit Preserved) */}
       <h1 className="text-3xl font-extrabold text-gray-800 tracking-widest uppercase mb-4 animate-pulse">
         <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-orange-500">TACSFON LIBRARY</span>
       </h1>
-
-      {/* 3. The Green Dots (Loading Indicator) */}
       <div className="flex gap-3">
         <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
         <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
         <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce"></div>
       </div>
-      
     </div>
   );
 }
 
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
+  const [trendingBooks, setTrendingBooks] = useState<any[]>([]); // New State for Trending
   const [search, setSearch] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-  
-  // 1. LOADING STATE
   const [isLoading, setIsLoading] = useState(true);
-
-  // ⚡ REF FOR AUTO-SCROLL CAROUSEL
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- SLIDER CONFIGURATION ---
@@ -88,7 +79,7 @@ export default function Home() {
   const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
 
-  // 2. UPDATED DATA FETCHING
+  // --- DATA FETCHING ---
   useEffect(() => {
     async function initData() {
       const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2500));
@@ -98,46 +89,55 @@ export default function Home() {
       if (dataResult.error) {
           console.error(dataResult.error);
       } else {
-          setBooks(dataResult.data || []);
+          const allBooks = dataResult.data || [];
+          setBooks(allBooks);
+          
+          // ⚡ CREATE TRENDING COLLECTION (Random Shuffle for "Healthy Mix")
+          // We create a copy, shuffle it, and take the top 10
+          const shuffled = [...allBooks].sort(() => 0.5 - Math.random());
+          setTrendingBooks(shuffled.slice(0, 10));
       }
       setIsLoading(false);
     }
     initData();
   }, []);
 
-  // ⚡ 3. NEW AUTO-SCROLL LOGIC FOR PILLARS
+  // --- AUTO-SCROLL PILLARS ---
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
     const scrollInterval = setInterval(() => {
-      // Calculate widths: card width + gap (16px/1rem)
       const cardWidth = scrollContainer.firstElementChild?.clientWidth || 0;
       const gap = 16; 
       const scrollAmount = cardWidth + gap;
       const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
 
-      // Logic: If near end, scroll back to 0. Else, scroll next.
       if (scrollContainer.scrollLeft >= maxScroll - 10) {
         scrollContainer.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         scrollContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
       }
-    }, 3000); // Moves every 3 seconds
+    }, 3000); 
 
     return () => clearInterval(scrollInterval);
-  }, [isLoading]); // Wait for loading to finish
+  }, [isLoading]);
 
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
 
-  // --- 🧠 SUPER SMART SORTER ---
+  // --- 🧠 UPGRADED CATEGORIZER ---
   const smartCategorize = (book: any) => {
+    // 1. Force Database Cleanup (Merge duplicate religious terms)
+    let dbCat = (book.category || "").toLowerCase();
+    if (['religion', 'spiritual', 'christianity', 'faith', 'gospel'].includes(dbCat)) {
+        return 'Spiritual Growth';
+    }
     if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
     
     const text = (book.title + " " + (book.summary || "")).toLowerCase();
     const author = (book.author || "").toLowerCase();
 
-    // 1. AUTHOR INTELLIGENCE
+    // 2. Author Intelligence
     if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
     if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
        return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
@@ -145,7 +145,7 @@ export default function Home() {
     if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
     if (author.match(/chapman|vallotton/i)) return 'Relationships';
 
-    // 2. KEYWORD INTELLIGENCE
+    // 3. Keyword Intelligence
     if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
     if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
     if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
@@ -157,7 +157,8 @@ export default function Home() {
 
   const categories = books.reduce((acc, book) => {
     let catRaw = smartCategorize(book);
-    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1).toLowerCase();
+    // Capitalize first letter
+    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1);
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(book);
     return acc;
@@ -165,17 +166,13 @@ export default function Home() {
 
   const sortedCategoryNames = Object.keys(categories).sort();
 
-  // 3. SHOW PRELOADER IF LOADING
-  if (isLoading) {
-    return <Preloader />;
-  }
+  if (isLoading) return <Preloader />;
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
 
-      {/* --- 1. HERO SLIDESHOW SECTION --- */}
-      {/* ⚡ MOBILE FIX: Reduced height to 65vh on mobile */}
+      {/* --- HERO SECTION --- */}
       <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden bg-gray-900 text-white">
         {slides.map((slide, index) => (
           <div 
@@ -203,13 +200,9 @@ export default function Home() {
             </div>
           </div>
         ))}
-        {/* Navigation Arrows (Hidden on Mobile) */}
-        <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronLeft size={32} /></button>
-        <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all text-white hidden md:block"><ChevronRight size={32} /></button>
       </section>
 
-      {/* --- 2. QUICK ACCESS HUB --- */}
-      {/* ⚡ MOBILE FIX: Compact view with reduced margins */}
+      {/* --- QUICK ACCESS --- */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-10 md:-mt-16 relative z-40">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Link href="/resources" className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
@@ -233,8 +226,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- 3. VIDEO SECTION --- */}
-      {/* ⚡ MOBILE FIX: Height reduced to 400px */}
+      {/* --- VIDEO SECTION --- */}
       <section className="relative w-full h-[400px] md:h-[500px] mt-16 md:mt-24 overflow-hidden flex items-center justify-center">
           <video 
             autoPlay 
@@ -245,9 +237,7 @@ export default function Home() {
           >
             <source src="https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />
           </video>
-          
           <div className="absolute inset-0 bg-black/50"></div>
-
           <div className="relative z-10 text-center max-w-3xl px-6">
               <span className="text-tacsfon-neonGreen font-bold tracking-[0.2em] text-xs md:text-sm uppercase mb-3 block animate-fade-in">About Us</span>
               <h2 className="text-3xl md:text-6xl font-extrabold text-white mb-4 md:mb-6 leading-tight">
@@ -256,9 +246,7 @@ export default function Home() {
               </h2>
               <p className="text-gray-300 text-base md:text-lg mb-6 md:mb-8 leading-relaxed">
                   We believe technology is more than just tools—it is the vehicle for spiritual and academic dominance. 
-                  Join a community where creativity meets divinity.
               </p>
-              
               <div className="flex justify-center">
                   <Link href="/about" className="px-8 py-3 md:px-10 md:py-4 bg-tacsfon-green text-white font-bold rounded-xl hover:bg-green-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/50 hover:scale-105 text-sm md:text-base">
                      <Users size={20} /> Join Community
@@ -267,18 +255,13 @@ export default function Home() {
           </div>
       </section>
 
-      {/* --- 4. NEW: TACSFON CORE PILLARS (Professional Light Theme) --- */}
+      {/* --- PILLARS SECTION --- */}
       <section className="relative py-16 md:py-24 bg-white overflow-hidden">
-          
-          {/* Subtle "Alive" Background Gradients */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
               <div className="absolute -top-[20%] -left-[10%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-green-50/50 rounded-full blur-[100px] animate-pulse-slow"></div>
               <div className="absolute top-[40%] -right-[10%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-emerald-50/50 rounded-full blur-[100px]"></div>
           </div>
-
           <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6">
-              
-              {/* Header */}
               <div className="text-center mb-10 md:mb-20">
                   <span className="inline-block py-1 px-3 rounded-full bg-green-50 border border-green-100 text-tacsfon-green font-extrabold tracking-[0.15em] uppercase text-[10px] md:text-xs shadow-sm mb-4">
                       Our Core Values
@@ -290,47 +273,41 @@ export default function Home() {
                       "Let no man despise thy youth." We are building a sanctuary where intellectual giants and spiritual generals are forged in the same fire.
                   </p>
               </div>
-
-              {/* Cards Grid - ⚡ MOBILE FIX: Horizontal Auto-Scroll (Netflix style) */}
               <div 
-                ref={scrollRef} // <--- ATTACHED SCROLL REF HERE
+                ref={scrollRef} 
                 className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-8 md:grid md:grid-cols-4 md:gap-8 md:pb-0 scrollbar-hide scroll-smooth"
               >
-                  
-                  {/* Pillar 1: Spiritual */}
+                  {/* Pillar 1 */}
                   <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Flame size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Spiritual Grounding</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Rooted in the Apostolic faith, fostering deep maturity through consistent prayer, sound doctrine, and the study of the Word.
+                          Rooted in the Apostolic faith, fostering deep maturity through consistent prayer and sound doctrine.
                       </p>
                   </div>
-
-                  {/* Pillar 2: Academic */}
+                  {/* Pillar 2 */}
                   <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <GraduationCap size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Academic Dominion</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Spirituality and intellect go hand in hand. We provide the resources and peer support needed to excel and lead in your field.
+                          Spirituality and intellect go hand in hand. We provide resources to excel and lead in your field.
                       </p>
                   </div>
-
-                  {/* Pillar 3: Service */}
+                  {/* Pillar 3 */}
                   <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Shield size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Service & Integrity</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom and humanity.
+                          Raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom.
                       </p>
                   </div>
-
-                  {/* Pillar 4: Family */}
+                  {/* Pillar 4 */}
                   <div className="min-w-[85vw] md:min-w-0 snap-center group relative p-6 md:p-8 rounded-3xl bg-white border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,168,89,0.15)] hover:border-green-200 transition-all duration-500">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-green-50 rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:bg-tacsfon-green transition-colors duration-300">
                           <Heart size={24} className="text-tacsfon-green group-hover:text-white transition-colors duration-300" />
@@ -340,10 +317,7 @@ export default function Home() {
                           A home away from home. We prioritize the mental, emotional, and personal well-being of every single member.
                       </p>
                   </div>
-
               </div>
-              
-              
           </div>
       </section>
 
@@ -382,7 +356,30 @@ export default function Home() {
               ))}
            </div>
         ) : (
-           <div className="space-y-12">
+           <div className="space-y-16">
+              
+              {/* ⚡ NEW: TRENDING BOOKS SECTION (Shown First) */}
+              {trendingBooks.length > 0 && (
+                 <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                       <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+                          <span className="w-2 h-6 md:h-8 bg-orange-500 rounded-full block"></span>
+                          Trending Books <TrendingUp size={20} className="text-orange-500"/>
+                       </h3>
+                       {/* Count Removed as requested */}
+                    </div>
+                    
+                    <div className="flex overflow-x-auto pb-8 gap-4 md:gap-6 snap-x snap-mandatory scrollbar-hide">
+                       {trendingBooks.map((book: any) => (
+                          <div key={`trend-${book.id}`} className="w-[140px] md:w-[200px] flex-shrink-0 snap-start">
+                             <BookCard book={book} />
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              )}
+
+              {/* Standard Categories */}
               {sortedCategoryNames.map((categoryName) => (
                  <div key={categoryName} className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -390,13 +387,14 @@ export default function Home() {
                           <span className="w-2 h-6 md:h-8 bg-tacsfon-green rounded-full block"></span>
                           {categoryName}
                        </h3>
-                       <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{categories[categoryName].length} Books</span>
+                       {/* Count Removed as requested */}
                     </div>
                     
-                    {/* Horizontal Scroll for Books - ⚡ MOBILE FIX */}
+                    {/* Horizontal Scroll for Books */}
                     <div className="flex overflow-x-auto pb-8 gap-4 md:gap-6 snap-x snap-mandatory scrollbar-hide">
                        {categories[categoryName].map((book: any) => (
-                          <div key={book.id} className="min-w-[140px] md:min-w-[200px] snap-start">
+                          // ⚡ SIZE FIX: Changed min-w to fixed w (width) for uniformity
+                          <div key={book.id} className="w-[140px] md:w-[200px] flex-shrink-0 snap-start">
                              <BookCard book={book} />
                           </div>
                        ))}
