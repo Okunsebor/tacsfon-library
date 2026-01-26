@@ -47,24 +47,24 @@ export default function Home() {
       id: 1,
       image: "/slide1.jpg", 
       title: "WELCOME TO TACSFON LIBRARY",
-      subtitle: "Empowering Academic Excellence & Spiritual Depth",
-      cta: "Explore Resources",
+      subtitle: "Fuel for your mind. Fire for your spirit. Foundations for your future.",
+      cta: "Access The Vault",
       link: "#collections"
     },
     {
       id: 2,
       image: "/slide2.jpg", 
       title: "RAISING GIANTS",
-      subtitle: "Access thousands of spiritual books and sermons meant to build your stature in Christ.",
-      cta: "Browse Sermons",
+      subtitle: "Join a generation that refuses to be mediocre. Access the sermons and secrets that build spiritual stature.",
+      cta: "Browse Media",
       link: "/media"
     },
     {
       id: 3,
       image: "/slide3.jpg", 
-      title: "A COMMUNITY OF INTELLECTUALS",
-      subtitle: "Join the movement of students who excel in both their studies and their walk with God.",
-      cta: "Let's Connect",
+      title: "EXCELLENCE IS OUR CULTURE",
+      subtitle: "Connect with the brilliant minds of TACSFON united by a singular mandate: Global Impact.",
+      cta: "Join The Family",
       link: "/contact"
     }
   ];
@@ -410,21 +410,21 @@ export default function Home() {
   );
 }
 
-// --- HELPER COMPONENT (OPTIMIZED) ---
+// --- HELPER COMPONENT (NETWORK SAFE VERSION) ---
 function BookCard({ book }: { book: any }) {
+   // Logic: If we are using the fallback placeholder, don't optimize it (saves bandwidth/crashes)
+   const isPlaceholder = !book.cover_url;
+   const imageUrl = book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`;
+
    return (
       <Link href={`/book/${book.id}`} className="group block h-full">
          <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden shadow-lg mb-4 border border-gray-100 group-hover:shadow-2xl group-hover:translate-y-[-5px] transition-all duration-300">
-             {/* ETHICAL UPGRADE: 
-                Using Next.js Image component handles:
-                1. Lazy Loading (Only loads when user scrolls to it)
-                2. Auto-Resizing (Serves small images to phones, big to desktops)
-                3. Format Conversion (Converts heavy JPEGs to light WebP)
-             */}
              <Image 
-               src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`} 
+               src={imageUrl} 
                alt={book.title}
-               fill // Tells image to fill the parent container (aspect-[2/3])
+               fill 
+               // ⚡ THE FIX: If it's a placeholder, skip the server download to prevent timeouts
+               unoptimized={isPlaceholder}
                sizes="(max-width: 768px) 150px, (max-width: 1200px) 200px, 20vw"
                className="object-cover transform group-hover:scale-110 transition-transform duration-700"
              />
