@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
@@ -409,16 +410,25 @@ export default function Home() {
   );
 }
 
-// --- HELPER COMPONENT ---
+// --- HELPER COMPONENT (OPTIMIZED) ---
 function BookCard({ book }: { book: any }) {
    return (
       <Link href={`/book/${book.id}`} className="group block h-full">
          <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden shadow-lg mb-4 border border-gray-100 group-hover:shadow-2xl group-hover:translate-y-[-5px] transition-all duration-300">
-             <img 
+             {/* ETHICAL UPGRADE: 
+                Using Next.js Image component handles:
+                1. Lazy Loading (Only loads when user scrolls to it)
+                2. Auto-Resizing (Serves small images to phones, big to desktops)
+                3. Format Conversion (Converts heavy JPEGs to light WebP)
+             */}
+             <Image 
                src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`} 
-               alt={book.title} 
-               className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+               alt={book.title}
+               fill // Tells image to fill the parent container (aspect-[2/3])
+               sizes="(max-width: 768px) 150px, (max-width: 1200px) 200px, 20vw"
+               className="object-cover transform group-hover:scale-110 transition-transform duration-700"
              />
+             
              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                  <span className="text-white text-xs font-bold uppercase tracking-wider">Read Now</span>
              </div>

@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // We can add config options here later if needed
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**', // ⚡ THE MAGIC WILDCARD: Allows ALL https domains
+      },
+      {
+        protocol: 'http',
+        hostname: '**', // Allows ALL http domains
+      },
+    ],
+  },
 };
 
 export default nextConfig;
