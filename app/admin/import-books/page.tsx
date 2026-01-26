@@ -1,162 +1,276 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Search, Download, Check, Loader, ArrowLeft, Clock, Globe } from 'lucide-react';
+import { Search, Save, Link as LinkIcon, BookOpen, Check, Loader2, Globe, X, CloudDownload } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ImportBooks() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [importing, setImporting] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<any>(null);
+  const [downloadLink, setDownloadLink] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
-  // 1. SEARCH: Fetch data with "availability" info
-  const handleSearch = async (e: React.FormEvent) => {
+  // --- 1. THE "GLOBAL HUNTER" (GOOGLE BOOKS API) ---
+  const searchGlobalLibrary = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query) return;
-    setSearching(true);
+    setLoading(true);
     setResults([]);
-
+    setSelectedBook(null); // Close any open draft
+    setMessage('');
+    
     try {
-      // 'has_fulltext=true' ensures we only see books that actually exist digitally
-      const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&has_fulltext=true&limit=20`);
+      // Fetch from Google Books API (Max 40 results for better selection)
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&printType=books`);
       const data = await res.json();
-      setResults(data.docs || []);
-    } catch (err) {
-      alert("Failed to search online.");
+      setResults(data.items || []);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to connect to global library.');
+    } finally {
+      setLoading(false);
     }
-    setSearching(false);
   };
 
-  // 2. IMPORT: Handle the logic
-  // ... inside importBook function ...
-
-  const importBook = async (book: any) => {
-    setImporting(book.key);
-
-    const title = book.title;
-    const author = book.author_name ? book.author_name[0] : 'Unknown Author';
-    const coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg` : null;
-    const iaId = book.ia ? book.ia[0] : null; 
+  // --- 2. SELECT & PREPARE (THE SMART ATTACH) ---
+  const handleSelect = (book: any) => {
+    const info = book.volumeInfo;
     
-    // SMART DETECTION:
-    // If ebook_access is 'public', it's free. Otherwise, it requires login.
-    const accessStatus = book.ebook_access === 'public' ? 'public' : 'borrowable';
+    // IMAGE HACK: Google sends small thumbnails. We try to get a bigger one.
+    let bestImage = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || '';
+    bestImage = bestImage.replace('edge=curl', '').replace('zoom=1', 'zoom=0'); // Try to force standard view
 
-    const newBook = {
-      title: title,
-      author: author,
-      category: 'General',
-      available_copies: 1,
-      cover_url: coverUrl,
-      ia_id: iaId,
-      ebook_access: accessStatus, // <--- SAVING THE STATUS HERE
-      summary: `First published in ${book.first_publish_year || 'Unknown'}.`
-    };
+    setSelectedBook({
+      title: info.title,
+      author: info.authors ? info.authors[0] : 'Unknown Author',
+      summary: info.description || 'No summary available.',
+      category: info.categories ? info.categories[0] : 'General', 
+      cover_url: bestImage || null,
+      published_year: info.publishedDate ? info.publishedDate.substring(0, 4) : 'Unknown'
+    });
+    
+    setDownloadLink(''); // Reset link input
+    // Smooth scroll to top to see the editor
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-
-    const { error } = await supabase.from('books').insert([newBook]);
-
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
-      setResults(prev => prev.map(b => b.key === book.key ? { ...b, imported: true } : b));
+  // --- 3. PUBLISH TO SUPABASE ---
+  const saveToLibrary = async () => {
+    if (!downloadLink) {
+        setMessage('❌ Please paste the PDF/Download link first.');
+        return;
     }
-    setImporting(null);
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase.from('books').insert([
+        {
+          title: selectedBook.title,
+          author: selectedBook.author,
+          summary: selectedBook.summary,
+          category: selectedBook.category,
+          cover_url: selectedBook.cover_url,
+          pdf_url: downloadLink, // <--- SAVING YOUR LINK HERE
+          available_copies: 100, // It's digital, so effectively infinite
+          is_trending: false
+        }
+      ]);
+
+      if (error) throw error;
+
+      setMessage('✅ Published successfully!');
+      setTimeout(() => {
+          setSelectedBook(null); // Close editor after 2s
+          setMessage('');
+      }, 2000);
+
+    } catch (error: any) {
+      console.error(error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
+    <main className="min-h-screen bg-gray-50 font-sans p-6 pb-32">
       <div className="max-w-6xl mx-auto">
         
         {/* HEADER */}
         <div className="flex items-center justify-between mb-8">
-            <Link href="/admin" className="flex items-center gap-2 text-gray-500 hover:text-tacsfon-green font-bold">
-                <ArrowLeft size={20} /> Back to Desk
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">Book Hunter</h1>
-            <div className="w-10"></div>
-        </div>
-
-        {/* SEARCH BAR */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
-            <form onSubmit={handleSearch} className="flex gap-4">
-                <div className="relative flex-grow">
-                    <Search className="absolute left-4 top-4 text-gray-400" />
-                    <input 
-                        type="text" 
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search title (e.g. 'Pilgrims Progress' or 'Calculus')" 
-                        className="w-full pl-12 pr-4 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-tacsfon-green outline-none text-lg"
-                    />
+            <Link href="/admin" className="flex items-center gap-2 text-gray-500 hover:text-tacsfon-green font-bold transition-colors">
+                <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm">
+                    <X size={16} />
                 </div>
-                <button 
-                    type="submit" 
-                    disabled={searching}
-                    className="bg-gray-900 text-white px-8 py-4 rounded-xl font-bold hover:bg-black transition-all flex items-center gap-2"
-                >
-                    {searching ? <Loader className="animate-spin" /> : 'Search'}
-                </button>
-            </form>
+                Back to Desk
+            </Link>
+            <div className="flex items-center gap-2 text-tacsfon-green bg-green-50 px-4 py-2 rounded-full border border-green-100">
+                <Globe size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">Global Database Connected</span>
+            </div>
         </div>
 
-        {/* RESULTS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((book) => (
-                <div key={book.key} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-4 hover:shadow-md transition-shadow">
-                    
-                    {/* Cover */}
-                    <div className="w-20 h-28 bg-gray-100 shrink-0 rounded-lg overflow-hidden">
-                        {book.cover_i ? (
-                            <img src={`https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`} alt="Cover" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">No Cover</div>
-                        )}
-                    </div>
+        <div className="text-center max-w-2xl mx-auto mb-10">
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Import Hunter</h1>
+            <p className="text-gray-500">Search the world's books, paste your link, and we handle the rest.</p>
+        </div>
 
-                    {/* Info */}
-                    <div className="flex flex-col justify-between flex-grow">
-                        <div>
-                            <h3 className="font-bold text-gray-800 line-clamp-2 leading-tight mb-1">{book.title}</h3>
-                            <p className="text-xs text-gray-500 mb-2">{book.author_name ? book.author_name[0] : 'Unknown'}</p>
-                            
-                            {/* --- THE TRAFFIC LIGHT BADGES --- */}
-                            {book.ebook_access === 'public' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded border border-green-200">
-                                    <Globe size={10} /> Instant Read (Free)
-                                </span>
-                            ) : book.ebook_access === 'borrowable' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-200">
-                                    <Clock size={10} /> Login Required
-                                </span>
+        {/* --- SECTION A: THE DRAFTING BOARD (Visible when a book is selected) --- */}
+        {selectedBook && (
+            <div className="bg-white rounded-3xl shadow-xl border-2 border-tacsfon-green p-8 mb-16 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex flex-col md:flex-row gap-8">
+                    {/* Book Cover Preview */}
+                    <div className="w-48 shrink-0 mx-auto md:mx-0">
+                        <div className="aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-gray-100 relative">
+                            {selectedBook.cover_url ? (
+                                <img src={selectedBook.cover_url} alt="Cover" className="w-full h-full object-cover" />
                             ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded">
-                                    Physical Only
-                                </span>
+                                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold">No Image</div>
                             )}
                         </div>
+                    </div>
 
-                        {/* Button */}
-                        {book.imported ? (
-                            <button disabled className="mt-3 w-full py-2 rounded-lg bg-green-50 text-green-600 font-bold text-sm flex items-center justify-center gap-2 cursor-default">
-                                <Check size={16} /> Added
-                            </button>
-                        ) : (
+                    {/* Metadata Editor */}
+                    <div className="flex-1 space-y-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase">{selectedBook.category}</span>
+                                <span className="text-gray-400 text-xs font-bold">{selectedBook.published_year}</span>
+                            </div>
+                            <h2 className="text-3xl font-extrabold text-gray-900 leading-tight">{selectedBook.title}</h2>
+                            <p className="text-xl text-tacsfon-green font-medium mt-1">{selectedBook.author}</p>
+                        </div>
+
+                        <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 leading-relaxed max-h-32 overflow-y-auto border border-gray-100">
+                            {selectedBook.summary}
+                        </div>
+
+                        {/* --- THE MAGIC INPUT: DOWNLOAD LINK --- */}
+                        <div className="space-y-3">
+                            <label className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                                <LinkIcon size={14}/> Paste PDF/Drive Link Source
+                            </label>
+                            <div className="flex gap-2">
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. https://drive.google.com/file/d/..." 
+                                  className="flex-1 px-5 py-4 rounded-xl bg-gray-50 border-2 border-gray-200 focus:border-tacsfon-green focus:bg-white outline-none font-medium transition-all"
+                                  value={downloadLink}
+                                  onChange={(e) => setDownloadLink(e.target.value)}
+                                  autoFocus
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400">
+                                Tip: You can copy links from OceanOfPDF, ZLibrary, or your own Google Drive.
+                            </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-2">
                             <button 
-                                onClick={() => importBook(book)}
-                                disabled={importing === book.key}
-                                className={`mt-3 w-full py-2 rounded-lg text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors ${
-                                    book.ebook_access === 'public' ? 'bg-tacsfon-green hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-800'
-                                }`}
+                                onClick={() => setSelectedBook(null)}
+                                className="px-6 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
                             >
-                                {importing === book.key ? <Loader size={16} className="animate-spin" /> : <><Download size={16} /> Import</>}
+                                Cancel
                             </button>
+                            <button 
+                                onClick={saveToLibrary}
+                                disabled={isSaving}
+                                className="flex-1 bg-gray-900 text-white px-6 py-4 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:-translate-y-1"
+                            >
+                                {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                                {isSaving ? 'Publishing...' : 'Publish to Library'}
+                            </button>
+                        </div>
+                        
+                        {message && (
+                            <div className={`p-4 rounded-xl text-center font-bold ${message.includes('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                                {message}
+                            </div>
                         )}
                     </div>
                 </div>
-            ))}
+            </div>
+        )}
+
+        {/* --- SECTION B: SEARCH BAR --- */}
+        <div className={`transition-all duration-500 ${selectedBook ? 'opacity-50 pointer-events-none blur-[1px]' : 'opacity-100'}`}>
+            <form onSubmit={searchGlobalLibrary} className="relative max-w-3xl mx-auto mb-12">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
+                <input 
+                  type="text" 
+                  placeholder="Search by Title, Author, or ISBN..." 
+                  className="w-full pl-16 pr-6 py-6 rounded-2xl bg-white border border-gray-200 focus:border-tacsfon-green outline-none shadow-xl shadow-gray-100/50 text-lg font-medium placeholder:font-normal"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-tacsfon-green text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
+                >
+                    {loading ? <Loader2 className="animate-spin" /> : 'Hunt'}
+                </button>
+            </form>
+
+            {/* --- SECTION C: RESULTS GRID --- */}
+            {results.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {results.map((book: any) => {
+                        const info = book.volumeInfo;
+                        const img = info.imageLinks?.thumbnail || null;
+                        
+                        return (
+                            <div 
+                                key={book.id} 
+                                onClick={() => handleSelect(book)}
+                                className="group relative bg-white p-3 rounded-2xl border border-gray-100 hover:border-tacsfon-green/50 hover:shadow-2xl transition-all cursor-pointer hover:-translate-y-2 duration-300" 
+                            >
+                                <div className="aspect-[2/3] bg-gray-50 rounded-xl overflow-hidden mb-4 relative shadow-inner">
+                                    {img ? (
+                                        <img src={img} alt={info.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                            <BookOpen size={32} />
+                                        </div>
+                                    )}
+                                    {/* Hover Overlay */}
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                        <span className="bg-white text-black text-xs font-bold px-4 py-2 rounded-full flex items-center gap-2 transform scale-90 group-hover:scale-100 transition-transform">
+                                            <CloudDownload size={14} /> Select
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-snug mb-1 group-hover:text-tacsfon-green transition-colors">
+                                    {info.title}
+                                </h3>
+                                <p className="text-xs text-gray-500 line-clamp-1 font-medium">
+                                    {info.authors ? info.authors[0] : 'Unknown Author'}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && results.length === 0 && !selectedBook && (
+                <div className="text-center py-20">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <BookOpen size={32} className="text-gray-300" />
+                    </div>
+                    <h3 className="text-gray-900 font-bold text-lg">Ready to Hunt</h3>
+                    <p className="text-gray-400 text-sm max-w-md mx-auto mt-2">
+                        Enter a title above to search the global database. Once found, you can attach your PDF link.
+                    </p>
+                </div>
+            )}
         </div>
+
       </div>
     </main>
   );
