@@ -271,7 +271,7 @@ export default function Home() {
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-emerald-200">The Four Pillars</span>
                   </h2>
                   <p className="text-gray-500 mt-4 md:mt-5 max-w-2xl mx-auto text-base md:text-lg leading-relaxed font-medium">
-                      "Let no man despise thy youth." We are building a sanctuary where intellectual giants and spiritual generals are forged in the same fire.
+                      "Let no man despise thy youth; be thou an example. We raise men and women who are as fervent in spirit as they are sharp in mind—undeniable leaders forged where academic excellence meets spiritual depth."
                   </p>
               </div>
               <div 
@@ -285,7 +285,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Spiritual Grounding</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Rooted in the Apostolic faith, fostering deep maturity through consistent prayer and sound doctrine.
+                          From classic generals to modern voices—explore the archives that ground you in sound doctrine and Apostolic fire.
                       </p>
                   </div>
                   {/* Pillar 2 */}
@@ -295,7 +295,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Academic Dominion</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Spirituality and intellect go hand in hand. We provide resources to excel and lead in your field.
+                          Your one-stop vault for departmental dominance. Lecture notes, tutorials, and the wisdom to turn knowledge into results.
                       </p>
                   </div>
                   {/* Pillar 3 */}
@@ -305,7 +305,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">Service & Integrity</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          Raising dependable leaders who serve with humility, integrity, and a genuine heart for the Kingdom.
+                          Resources on leadership, ethics, and purpose. Learn how to navigate the marketplace with a Kingdom mindset.
                       </p>
                   </div>
                   {/* Pillar 4 */}
@@ -315,7 +315,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-gray-900 group-hover:text-tacsfon-green transition-colors">The Family of Love</h3>
                       <p className="text-gray-500 text-sm leading-relaxed group-hover:text-gray-600">
-                          A home away from home. We prioritize the mental, emotional, and personal well-being of every single member.
+                          A community that connects. Find mentorship, peer support, and a bond that goes beyond the four walls of the fellowship.
                       </p>
                   </div>
               </div>
