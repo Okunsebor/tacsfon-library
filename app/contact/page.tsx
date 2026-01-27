@@ -47,7 +47,7 @@ export default function Contact() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-gray-50/90 backdrop-blur-[1px]"></div>
 
         {/* Hero Text - Compact on Mobile */}
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto -mt-8 md:-mt-10">
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-12 md:-mt-10">
             <h1 className="text-4xl md:text-7xl font-black text-white mb-3 md:mb-6 tracking-tight drop-shadow-lg">
                 Let's <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-200">Connect.</span>
             </h1>
