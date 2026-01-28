@@ -35,25 +35,43 @@ export default function ImportBooks() {
     }
   };
 
-  // --- 2. SELECT & PREPARE (THE SMART ATTACH) ---
+  // --- 2. SELECT & PREPARE (SMART IMAGE FINDER) ---
   const handleSelect = (book: any) => {
     const info = book.volumeInfo;
     
-    // IMAGE HACK: Google sends small thumbnails. We try to get a bigger one.
-    let bestImage = info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || '';
-    bestImage = bestImage.replace('edge=curl', '').replace('zoom=1', 'zoom=0'); // Try to force standard view
+    // STRATEGY 1: Search for the largest available Google Image
+    const images = info.imageLinks || {};
+    let bestImage = images.extraLarge || images.large || images.medium || images.small || images.thumbnail || images.smallThumbnail || '';
+
+    // Fix Google's "Page Curl" effect and force HTTPS
+    if (bestImage) {
+        bestImage = bestImage.replace('edge=curl', '').replace('http://', 'https://');
+    }
+
+    // STRATEGY 2: If Google failed, try Open Library using ISBN
+    if (!bestImage && info.industryIdentifiers) {
+        const isbnInfo = info.industryIdentifiers.find((id: any) => id.type === 'ISBN_13') || info.industryIdentifiers.find((id: any) => id.type === 'ISBN_10');
+        if (isbnInfo) {
+            // Open Library Cover API (L = Large size)
+            bestImage = `https://covers.openlibrary.org/b/isbn/${isbnInfo.identifier}-L.jpg`;
+        }
+    }
+
+    // STRATEGY 3: Final Fallback
+    if (!bestImage) {
+        bestImage = "https://placehold.co/400x600?text=No+Cover"; // Clean placeholder
+    }
 
     setSelectedBook({
       title: info.title,
       author: info.authors ? info.authors[0] : 'Unknown Author',
       summary: info.description || 'No summary available.',
       category: info.categories ? info.categories[0] : 'General', 
-      cover_url: bestImage || null,
+      cover_url: bestImage, // <--- Now uses the smartest available link
       published_year: info.publishedDate ? info.publishedDate.substring(0, 4) : 'Unknown'
     });
     
-    setDownloadLink(''); // Reset link input
-    // Smooth scroll to top to see the editor
+    setDownloadLink('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
