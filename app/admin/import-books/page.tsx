@@ -13,28 +13,51 @@ export default function ImportBooks() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // --- 1. THE "GLOBAL HUNTER" (GOOGLE BOOKS API) ---
+  // --- 1. THE "GLOBAL HUNTER" (GOOGLE WITH API KEY) ---
   const searchGlobalLibrary = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query) return;
+    if (!query.trim()) return;
+    
     setLoading(true);
     setResults([]);
-    setSelectedBook(null); // Close any open draft
+    setSelectedBook(null);
     setMessage('');
-    
+
+    // 🔴 PASTE YOUR API KEY HERE INSIDE THE QUOTES
+    const GOOGLE_API_KEY = "AIzaSyDzPDOkFqVBq19IQPI8h5kOoOp0l9_dODo"; 
+
     try {
-      // Fetch from Google Books API (Max 40 results for better selection)
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&printType=books`);
+      console.log(`Hunting for: ${query}...`); 
+      
+      // We add '&key=' to the URL to authenticate
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=40&printType=books&key=${GOOGLE_API_KEY}`;
+      
+      const res = await fetch(url);
+      
+      // Improved Error Handling: Show the Status Code (e.g., 403, 429)
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({})); // Try to get error text
+        const errorMessage = errorData.error?.message || res.statusText;
+        throw new Error(`Google Error (${res.status}): ${errorMessage}`);
+      }
+
       const data = await res.json();
-      setResults(data.items || []);
-    } catch (error) {
-      console.error(error);
-      alert('Failed to connect to global library.');
+      
+      if (data.totalItems === 0 || !data.items) {
+          // If Google finds nothing, we can just show empty (or try OpenLibrary if you really want)
+          setResults([]);
+      } else {
+          setResults(data.items);
+      }
+
+    } catch (error: any) {
+      console.error("Search failed:", error);
+      // Detailed alert to help us debug if it fails again
+      alert(`Search failed: ${error.message}.`);
     } finally {
       setLoading(false);
     }
   };
-
   // --- 2. SELECT & PREPARE (SMART IMAGE FINDER) ---
   const handleSelect = (book: any) => {
     const info = book.volumeInfo;
@@ -235,11 +258,12 @@ export default function ImportBooks() {
             </form>
 
             {/* --- SECTION C: RESULTS GRID --- */}
-            {results.length > 0 && (
+            {results.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                     {results.map((book: any) => {
                         const info = book.volumeInfo;
-                        const img = info.imageLinks?.thumbnail || null;
+                        // Better image handling
+                        const img = info.imageLinks?.thumbnail?.replace('http://', 'https://') || null;
                         
                         return (
                             <div 
@@ -272,6 +296,33 @@ export default function ImportBooks() {
                             </div>
                         );
                     })}
+                </div>
+            ) : (
+                // --- EMPTY STATES ---
+                <div className="text-center py-20">
+                    {!loading && query && results.length === 0 ? (
+                         // STATE: SEARCHED BUT FOUND NOTHING
+                         <div className="animate-in fade-in zoom-in duration-300">
+                            <div className="w-20 h-20 bg-red-50 text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Search size={32} />
+                            </div>
+                            <h3 className="text-gray-900 font-bold text-lg">No Books Found</h3>
+                            <p className="text-gray-400 text-sm max-w-md mx-auto mt-2">
+                                We couldn't find anything matching "<span className="text-gray-900 font-bold">{query}</span>". Try a simpler title.
+                            </p>
+                        </div>
+                    ) : !loading && !query ? (
+                        // STATE: READY TO START
+                        <div>
+                            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <BookOpen size={32} className="text-gray-300" />
+                            </div>
+                            <h3 className="text-gray-900 font-bold text-lg">Ready to Hunt</h3>
+                            <p className="text-gray-400 text-sm max-w-md mx-auto mt-2">
+                                Enter a title above to search the global database.
+                            </p>
+                        </div>
+                    ) : null}
                 </div>
             )}
 

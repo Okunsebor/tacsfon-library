@@ -73,7 +73,7 @@ export default function Contact() {
                 
                 {/* WHATSAPP CARD (Compact Mobile Padding) */}
                 <a 
-                  href="https://chat.whatsapp.com/YOUR_ACTUAL_GROUP_LINK_HERE" 
+                  href="https://chat.whatsapp.com/F0mi4PCyOPiKpPMxFjInOh?mode=gi_t" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="block p-6 md:p-8 rounded-3xl md:rounded-[2rem] relative overflow-hidden group hover:-translate-y-2 transition-all duration-300 shadow-xl md:shadow-2xl shadow-green-900/20"

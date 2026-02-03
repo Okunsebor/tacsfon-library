@@ -8,6 +8,7 @@ import {
   Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, 
   Users, Play, Flame, GraduationCap, Shield, Heart, TrendingUp 
 } from 'lucide-react';
+import EventShowcase from './components/EventShowcase';
 
 // --- COMPONENT: SPLASH SCREEN ---
 function Preloader() {
@@ -202,33 +203,63 @@ export default function Home() {
           </div>
         ))}
       </section>
+      
 
       {/* --- QUICK ACCESS --- */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-10 md:-mt-16 relative z-40">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <Link href="/resources" className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-900 rounded-2xl flex items-center justify-center text-tacsfon-neonGreen group-hover:scale-110 transition-transform"><Folder size={24} /></div>
-                    <div className="bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider group-hover:bg-tacsfon-neonGreen group-hover:text-black transition-colors">Faculty Access</div>
+        {/* FIX: Changed grid-cols-1 to grid-cols-2 so they sit side-by-side on mobile */}
+        <div className="grid grid-cols-2 gap-3 md:gap-6">
+            
+            {/* CARD 1: ACADEMIC HUB */}
+            <Link href="/resources" className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group flex flex-col h-full justify-between">
+                <div>
+                    <div className="flex justify-between items-start mb-3 md:mb-4">
+                        {/* Shrunk icon for mobile */}
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-gray-900 rounded-xl md:rounded-2xl flex items-center justify-center text-tacsfon-neonGreen group-hover:scale-110 transition-transform">
+                            <Folder size={20} className="md:w-6 md:h-6" />
+                        </div>
+                        {/* Shrunk badge for mobile */}
+                        <div className="bg-gray-100 text-gray-600 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider group-hover:bg-tacsfon-neonGreen group-hover:text-black transition-colors">
+                            Faculty
+                        </div>
+                    </div>
+                    <h3 className="text-sm md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-tacsfon-green leading-tight">Academic Hub</h3>
+                    <p className="text-[10px] md:text-base text-gray-500 mb-3 md:mb-6 leading-snug line-clamp-2 md:line-clamp-none">
+                        Lecture notes, handouts, and past questions.
+                    </p>
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 group-hover:text-tacsfon-green">Academic Hub</h3>
-                <p className="text-sm md:text-base text-gray-500 mb-6">Lecture notes, handouts, and past questions tailored for your department.</p>
-                <div className="flex items-center text-gray-900 font-bold text-xs md:text-sm group-hover:text-tacsfon-neonGreen transition-colors">OPEN FOLDER <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/></div>
+                <div className="flex items-center text-gray-900 font-bold text-[10px] md:text-sm group-hover:text-tacsfon-neonGreen transition-colors mt-auto">
+                    OPEN <ArrowRight size={14} className="ml-1 md:ml-2 group-hover:translate-x-1 transition-transform md:w-4 md:h-4"/>
+                </div>
             </Link>
-            <Link href="/media" className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-orange hover:shadow-2xl hover:-translate-y-1 transition-all group">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 md:w-14 md:h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-tacsfon-orange group-hover:bg-tacsfon-orange group-hover:text-white transition-colors"><Video size={24} /></div>
-                    <div className="bg-orange-100 text-orange-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Sermons & Media</div>
+
+            {/* CARD 2: SERMONS & MEDIA */}
+            <Link href="/media" className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-orange hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col h-full justify-between">
+                <div>
+                    <div className="flex justify-between items-start mb-3 md:mb-4">
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-orange-50 rounded-xl md:rounded-2xl flex items-center justify-center text-tacsfon-orange group-hover:bg-tacsfon-orange group-hover:text-white transition-colors">
+                            <Video size={20} className="md:w-6 md:h-6" />
+                        </div>
+                        <div className="bg-orange-100 text-orange-700 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">
+                            Media
+                        </div>
+                    </div>
+                    <h3 className="text-sm md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-tacsfon-orange leading-tight">Sermons & Media</h3>
+                    <p className="text-[10px] md:text-base text-gray-500 mb-3 md:mb-6 leading-snug line-clamp-2 md:line-clamp-none">
+                        Stream audio messages, videos, and galleries.
+                    </p>
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-2 group-hover:text-tacsfon-orange">Sermons & Media</h3>
-                <p className="text-sm md:text-base text-gray-500 mb-6">Stream audio messages, videos, and photo galleries from fellowship.</p>
-                <div className="flex items-center text-tacsfon-orange font-bold text-xs md:text-sm">START STREAMING <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform"/></div>
+                <div className="flex items-center text-tacsfon-orange font-bold text-[10px] md:text-sm mt-auto">
+                    STREAM <ArrowRight size={14} className="ml-1 md:ml-2 group-hover:translate-x-1 transition-transform md:w-4 md:h-4"/>
+                </div>
             </Link>
         </div>
       </section>
+      {/* --- NEW: EVENT SHOWCASE --- */}
+      <EventShowcase />
 
       {/* --- VIDEO SECTION --- */}
-      <section className="relative w-full h-[400px] md:h-[500px] mt-16 md:mt-24 overflow-hidden flex items-center justify-center">
+      <section className="relative w-full h-[400px] md:h-[500px] -mt-5 md:mt-24 overflow-hidden flex items-center justify-center">
           <video 
             autoPlay 
             loop 
