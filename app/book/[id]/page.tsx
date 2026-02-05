@@ -205,9 +205,10 @@ export default function BookDetails() {
                         
                         {/* ⚡ READ MORE LOGIC */}
                         <div className="relative">
-                            <p className={`text-gray-800 leading-relaxed text-lg font-normal transition-all duration-300 ${!isExpanded ? 'line-clamp-3' : ''}`}>
-                                {description}
-                            </p>
+                            <div 
+    className={`text-gray-800 leading-relaxed text-lg font-normal transition-all duration-300 ${!isExpanded ? 'line-clamp-3' : ''} [&>p]:mb-4`}
+    dangerouslySetInnerHTML={{ __html: description }}
+/>
                             
                             {/* Toggle Button (Only shows if text is long enough - simplified logic here) */}
                             {description.length > 150 && (

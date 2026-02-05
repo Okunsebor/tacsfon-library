@@ -10,29 +10,52 @@ import {
 } from 'lucide-react';
 import EventShowcase from './components/EventShowcase';
 
-// --- COMPONENT: SPLASH SCREEN ---
+// --- COMPONENT: SPLASH SCREEN (UPDATED) ---
 function Preloader() {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-50">
-      <div className="relative w-40 h-40 mb-6 animate-[spin_4s_linear_infinite]">
-         <img 
-           src="/splash-icon.png" 
-           alt="Loading..." 
-           className="w-full h-full object-contain drop-shadow-xl" 
-         />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-700">
+      
+      {/* LOGO CONTAINER: Adjust width (w-[300px]) if you need it bigger/smaller */}
+      <div className="relative w-[300px] md:w-[400px] aspect-[3/1]">
+        
+        {/* LAYER 1: THE GHOST (Faint Gray Background) */}
+        {/* This stays static so you see what is about to be filled */}
+        <div className="absolute inset-0 opacity-10 grayscale">
+            <img 
+              src="/tacsfon-brand.png" 
+              alt="Loading..." 
+              className="w-full h-full object-contain" 
+            />
+        </div>
+
+        {/* LAYER 2: THE WIPE (Full Color Reveal) */}
+        {/* The 'animate-brand-wipe' class expands the width from 0% to 100% */}
+        <div className="absolute inset-y-0 left-0 overflow-hidden animate-brand-wipe border-r-2 border-orange-500/20">
+            {/* INNER CONTAINER: Must match the parent size exactly so the image doesn't squish */}
+            <div className="relative w-[300px] md:w-[400px] aspect-[3/1]"> 
+                <img 
+                  src="/tacsfon-brand.png" 
+                  alt="Loading..." 
+                  className="w-full h-full object-contain" 
+                />
+            </div>
+        </div>
+
       </div>
-      <h1 className="text-3xl font-extrabold text-gray-800 tracking-widest uppercase mb-4 animate-pulse">
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-orange-500">TACSFON LIBRARY</span>
-      </h1>
-      <div className="flex gap-3">
-        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-4 h-4 bg-tacsfon-green rounded-full animate-bounce"></div>
-      </div>
+
+      {/* CUSTOM CSS FOR THE WIPE ANIMATION */}
+      <style jsx>{`
+        @keyframes brand-wipe {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        .animate-brand-wipe {
+          animation: brand-wipe 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+      `}</style>
     </div>
   );
 }
-
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
   const [trendingBooks, setTrendingBooks] = useState<any[]>([]); // New State for Trending

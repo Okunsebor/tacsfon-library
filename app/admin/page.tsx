@@ -19,7 +19,8 @@ import {
   LogOut,
   ChevronRight,
   Lock,
-  ClipboardList // ✅ Added for Loan Manager Icon
+  ClipboardList, // ✅ Added for Loan Manager Icon
+  Wand2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -167,6 +168,7 @@ export default function AdminLayout() {
               <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Actions</p>
               {/* ✅ UPDATE 3: Added Loan Manager Link Here */}
               <NavItem link="/admin/loans" label="Loan Manager" icon={ClipboardList} />
+              <NavItem link="/admin/manage-library" label="Library Manager" icon={Wand2} />
               
               <NavItem link="/admin/academic-hub" label="Academic Hub" icon={Folder} />
               <NavItem link="/admin/upload-media" label="Media Manager" icon={UploadCloud} />
