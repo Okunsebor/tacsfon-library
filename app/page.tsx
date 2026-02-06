@@ -282,11 +282,11 @@ export default function Home() {
       <EventShowcase />
 
       {/* --- VIDEO SECTION --- */}
-      <section className="relative w-full h-[400px] md:h-[500px] -mt-5 md:mt-24 overflow-hidden flex items-center justify-center">
+      <section className="relative w-full h-[400px] md:h-[500px] mt-5 md:mt-24 overflow-hidden flex items-center justify-center">
           <video 
             autoPlay 
             loop 
-            muted 
+            muted
             playsInline 
             className="absolute inset-0 w-full h-full object-cover"
           >
