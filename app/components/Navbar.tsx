@@ -53,7 +53,7 @@ export default function Navbar() {
               <img 
                 src="/tacsfon-brand.png" 
                 alt="TACSFON Official Logo" 
-                className="h-8 md:h-10 w-auto object-contain hover:opacity-90 transition-opacity" 
+                className="h-12 md:h-16 w-auto object-contain hover:opacity-90 transition-opacity" 
               />
             </Link>
 
