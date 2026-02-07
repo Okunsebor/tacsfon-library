@@ -1,11 +1,13 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
+import FuturisticLoader from '@/app/components/FuturisticLoader';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+
 
 export default function BookDetails() {
   const { id } = useParams();
@@ -115,10 +117,10 @@ export default function BookDetails() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-green-400"></div>
-    </div>
-  );
+  <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <FuturisticLoader />
+  </div>
+);
 
   if (!book) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
