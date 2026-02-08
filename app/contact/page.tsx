@@ -103,8 +103,8 @@ export default function Contact() {
                 {/* INFO CARDS (Compact List) */}
                 <div className="grid grid-cols-1 gap-3 md:gap-6">
                   {[
-                      { icon: Phone, title: 'Call Us', sub: 'Mon-Fri, 8am-5pm', link: '+234 708 509 5509', href: 'tel:+2347085095509', color: 'text-tacsfon-green', bg: 'bg-green-50' },
-                      { icon: Mail, title: 'Email Us', sub: 'We reply within 24hrs', link: 'tacsfonnational@gmail.com', href: 'mailto:tacsfonnational@gmail.com', color: 'text-orange-500', bg: 'bg-orange-50' },
+                      { icon: Phone, title: 'Call Us', sub: 'Mon-Fri, 8am-5pm', link: '+234 70 1989 0988', href: 'tel:+2347019890988', color: 'text-tacsfon-green', bg: 'bg-green-50' },
+                      { icon: Mail, title: 'Email Us', sub: 'We reply within 24hrs', link: 'tacsfonfutminna@gmail.com', href: 'mailto:tacsfonfutminna@gmail.com', color: 'text-orange-500', bg: 'bg-orange-50' },
                       { icon: MapPin, title: 'Visit Us', sub: 'Lagos, Nigeria', link: 'Come say hello', href: '#', color: 'text-blue-600', bg: 'bg-blue-50' }
                   ].map((item, idx) => (
                       <div key={idx} className="p-4 md:p-6 rounded-2xl md:rounded-[2rem] flex items-center gap-4 hover:-translate-y-1 transition-transform group bg-white border border-gray-100 shadow-lg shadow-gray-200/50">
