@@ -1,0 +1,29 @@
+name: TACSFON CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Node Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm' # Critical for reducing install time
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Strict Type & Lint Check
+        run: npm run lint
+
+      - name: Pre-Deployment Build Simulation
+        run: npm run build
