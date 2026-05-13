@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { BookOpen, AlertCircle, CheckCircle, X } from 'lucide-react';
-import LogoLoader from './LogoLoader'; // Use your new loader!
+import { BookOpen, AlertCircle, CheckCircle, X, Loader2 } from 'lucide-react';
 
 export default function BorrowButton({ bookId, availableCopies }: { bookId: number, availableCopies: number }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,21 +12,16 @@ export default function BorrowButton({ bookId, availableCopies }: { bookId: numb
 
   async function handleBorrow() {
     setLoading(true);
-
-    // 1. CHECK USER: Are they logged in?
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      // If not logged in, force them to login page
       alert("Please Log In or Sign Up to borrow books.");
       router.push('/login');
       return;
     }
 
-    // 2. GET NAME: Get the name they signed up with
     const studentName = user.user_metadata.full_name || user.email;
 
-    // 3. EXECUTE LOAN
     const { error: loanError } = await supabase
       .from('loans')
       .insert([{ book_id: bookId, student_name: studentName, status: 'active' }]);
@@ -35,7 +29,6 @@ export default function BorrowButton({ bookId, availableCopies }: { bookId: numb
     if (loanError) {
       alert("Error: " + loanError.message);
     } else {
-      // Decrease Stock
       await supabase
         .from('books')
         .update({ available_copies: availableCopies - 1 })
@@ -62,18 +55,27 @@ export default function BorrowButton({ bookId, availableCopies }: { bookId: numb
         {availableCopies > 0 ? 'Borrow This Book' : 'Out of Stock'}
       </button>
 
-      {/* CONFIRMATION DIALOG (Glassmorphism) */}
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="glass bg-[#1a1a2e] rounded-2xl w-full max-w-md p-6 border border-white/20 shadow-2xl">
             
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
               <h3 className="text-xl font-bold text-white">Confirm Request</h3>
-              <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white"><X /></button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close"
+                className="text-gray-400 hover:text-white"
+              >
+                <X />
+              </button>
             </div>
 
             {loading ? (
-              <div className="py-8"><LogoLoader /></div>
+              <div className="py-8 flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin text-blue-500" size={40} />
+                <p className="text-gray-400 text-sm">Processing loan...</p>
+              </div>
             ) : (
               <div className="space-y-6">
                  <div className="bg-yellow-500/10 p-4 rounded-lg flex gap-3 text-yellow-200 text-sm border border-yellow-500/20">
