@@ -49,7 +49,7 @@ export default function Contact() {
         {/* Hero Text - Compact on Mobile */}
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-12 md:-mt-10">
             <h1 className="text-4xl md:text-7xl font-black text-white mb-3 md:mb-6 tracking-tight drop-shadow-lg">
-                Let's <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-200">Connect.</span>
+                Let&apos;s <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-200">Connect.</span>
             </h1>
             <p className="text-gray-100 text-base md:text-2xl max-w-xl mx-auto leading-relaxed font-light drop-shadow-md">
                 Have questions about the library, resources, or the fellowship? We are here for the family.
@@ -127,7 +127,7 @@ export default function Contact() {
             <div className="lg:col-span-2 rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 relative overflow-hidden bg-white border border-gray-100 shadow-xl md:shadow-2xl shadow-gray-200/50">
                 <div className="mb-6 md:mb-10 text-center md:text-left">
                     <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">Send a Message</h2>
-                    <p className="text-gray-500 text-sm md:text-base font-medium">Fill out the form below and we'll get back to you.</p>
+                    <p className="text-gray-500 text-sm md:text-base font-medium">Fill out the form below and we&apos;ll get back to you.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">

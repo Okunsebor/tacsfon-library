@@ -94,7 +94,7 @@ export default function EditBook() {
                 onChange={(e) => setFormData({...formData, pdf_url: e.target.value})}
               />
               <p className="text-[10px] text-blue-400 mt-2 font-bold">
-                  * Ensure the link permission is set to "Anyone with the link" in Google Drive.
+                  * Ensure the link permission is set to &quot;Anyone with the link&quot; in Google Drive.
               </p>
           </div>
 

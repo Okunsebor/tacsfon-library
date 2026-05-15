@@ -325,7 +325,7 @@ export default function Home() {
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-tacsfon-green to-emerald-200">The Four Pillars</span>
                   </h2>
                   <p className="text-gray-500 mt-4 md:mt-5 max-w-2xl mx-auto text-base md:text-lg leading-relaxed font-medium">
-                      "Let no man despise thy youth; be thou an example. We raise men and women who are as fervent in spirit as they are sharp in mind—undeniable leaders forged where academic excellence meets spiritual depth."
+                      &quot;Let no man despise thy youth; be thou an example. We raise men and women who are as fervent in spirit as they are sharp in mind—undeniable leaders forged where academic excellence meets spiritual depth.&quot;
                   </p>
               </div>
               <div 
@@ -404,7 +404,7 @@ export default function Home() {
               {filteredBooks.length === 0 ? (
                   <div className="col-span-full py-20 text-center text-gray-400">
                       <BookOpen size={48} className="mx-auto mb-4 opacity-20"/>
-                      <p>No books found matching "{search}"</p>
+                      <p>No books found matching &quot;{search}&quot;</p>
                   </div>
               ) : filteredBooks.map((book) => (
                  <BookCard key={book.id} book={book} />

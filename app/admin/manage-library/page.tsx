@@ -101,7 +101,7 @@ export default function ManageLibrary() {
                 <p className="text-gray-500 text-sm">Update, Edit, or Remaster your collection.</p>
             </div>
             <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
-                <Wand2 size={16} /> Tip: Use "Remaster" to auto-fix covers & summaries.
+                <Wand2 size={16} /> Tip: Use &quot;Remaster&quot; to auto-fix covers &amp; summaries.
             </div>
         </div>
       </div>

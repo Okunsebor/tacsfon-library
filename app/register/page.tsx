@@ -175,7 +175,7 @@ export default function Register() {
           {/* --- QUOTE SECTION --- */}
           <div className="pt-6 mt-6 border-t border-gray-100">
              <blockquote className="text-center italic text-gray-400 text-sm font-serif">
-                "Wisdom is the principal thing; therefore get wisdom."
+                &quot;Wisdom is the principal thing; therefore get wisdom.&quot;
              </blockquote>
              <p className="text-center text-xs text-gray-300 mt-2 uppercase tracking-widest font-bold">— Proverbs 4:7</p>
           </div>

@@ -41,6 +41,7 @@ export default function AcademicResources() {
       fetchResources(); 
     }
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- THE SEARCH & FILTER ENGINE ---
@@ -68,6 +69,7 @@ export default function AcademicResources() {
   // Trigger fetch whenever a filter changes
   useEffect(() => {
     fetchResources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFaculty, selectedLevel, selectedType, searchQuery]);
 
   return (

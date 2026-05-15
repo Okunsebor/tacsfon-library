@@ -92,7 +92,7 @@ export default function Onboarding() {
                    <User className="text-tacsfon-neonGreen" />
                </div>
                <h2 className="text-3xl font-extrabold mb-2">Welcome Home.</h2>
-               <p className="text-gray-400 text-sm">Let's customize your library experience to help you grow.</p>
+               <p className="text-gray-400 text-sm">Let&apos;s customize your library experience to help you grow.</p>
            </div>
            
            <div className="relative z-10 mt-10 space-y-2">
