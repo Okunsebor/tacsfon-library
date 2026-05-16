@@ -8,18 +8,18 @@ import {
   Clock, 
   LogOut, 
   Settings, 
-  Award, 
   Calendar, 
-  TrendingUp, 
   ArrowRight,
   CheckCircle,
   AlertCircle,
   MapPin,
   Zap,
   Brain,
-  Target,
-  Flame
+  Flame,
+  LayoutDashboard,
+  PlayCircle
 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -37,7 +37,6 @@ export default function StudentDashboard() {
     hoursRead: 0,
     activeBorrows: 0,
     streak: 7,
-    weeklyGoal: 10
   });
 
   // --- 1. DETERMINE TIME OF DAY ---
@@ -122,676 +121,333 @@ export default function StudentDashboard() {
   const activeLoans = loans.filter(l => l.status === 'active');
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 border-4 border-tacsfon-green border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-600 font-bold text-sm animate-pulse">Loading your dashboard...</p>
+        <div className="h-12 w-12 border-4 border-tacsfon-green border-t-transparent rounded-full animate-spin shadow-lg"></div>
+        <p className="text-gray-500 font-bold text-sm animate-pulse tracking-wide uppercase">Preparing your dashboard</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 font-sans pb-20">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans pb-24">
       
       {/* --- HEADER SECTION --- */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-30 backdrop-blur-md bg-white/95">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+      <header className="bg-white/80 border-b border-gray-100 sticky top-0 z-40 backdrop-blur-xl">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
              <Link href="/" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 bg-gradient-to-br from-tacsfon-green to-tacsfon-orange rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-                  <BookOpen size={24} className="text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-tacsfon-green to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-tacsfon-green/30 transition-shadow">
+                  <LayoutDashboard size={20} className="text-white" />
                 </div>
-                <span className="font-bold text-gray-900 hidden sm:inline">TacsLib</span>
+                <span className="font-extrabold text-xl tracking-tight text-gray-900 hidden sm:inline">Student Portal</span>
              </Link>
-             <div className="flex items-center gap-4">
+             <div className="flex items-center gap-5">
                  <div className="hidden md:flex flex-col items-end mr-2">
-                     <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Student ID</span>
-                     <span className="text-sm font-bold text-gray-900">{user?.email?.split('@')[0]}</span>
+                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Student ID</span>
+                     <span className="text-sm font-bold text-gray-800">{user?.email?.split('@')[0]}</span>
                  </div>
-                 <div className="h-10 w-10 bg-gradient-to-br from-tacsfon-green to-green-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg hover:shadow-lg transition-shadow">
+                 <div className="h-11 w-11 bg-gradient-to-br from-tacsfon-orange to-orange-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg hover:shadow-orange-500/30 transition-all cursor-pointer ring-2 ring-white border border-gray-100">
                      {user?.email?.charAt(0).toUpperCase()}
                  </div>
              </div>
          </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-12">
         
-        {/* --- WELCOME BANNER --- */}
-        <div className="bg-gradient-to-r from-tacsfon-green via-green-600 to-tacsfon-green rounded-3xl p-8 md:p-12 shadow-xl text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 opacity-50"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-tacsfon-orange/20 rounded-full translate-y-1/2 -translate-x-1/4 opacity-30"></div>
+        {/* --- STUNNING WELCOME BANNER --- */}
+        <div className="relative bg-gradient-to-br from-tacsfon-green via-[#005a30] to-[#004222] rounded-[2rem] p-8 md:p-14 shadow-2xl shadow-tacsfon-green/20 text-white overflow-hidden">
+            {/* Abstract Orbs */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-tacsfon-orange/30 rounded-full mix-blend-screen filter blur-[80px] opacity-60 -translate-y-1/2 translate-x-1/4"></div>
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-400/20 rounded-full mix-blend-screen filter blur-[60px] opacity-40 translate-y-1/2 -translate-x-1/4"></div>
             
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 text-white/80 font-bold text-sm mb-2">
-                  <Calendar size={16} />
-                  <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold mb-2">
-                  {greeting}, <span className="text-white/90">{userName}</span>
-              </h1>
-              <p className="text-white/80 max-w-2xl text-lg">
-                  Continue your learning journey. You're on a 🔥 <span className="font-bold">{stats.streak}-day streak</span> — keep it up!
-              </p>
-              <div className="flex gap-3 mt-6">
-                  <Link href="/learning-hub" className="flex items-center gap-2 px-6 py-3 bg-white text-tacsfon-green font-bold rounded-xl hover:bg-white/95 transition-all hover:shadow-lg">
-                    <Brain size={18} /> Continue Learning
-                  </Link>
-                  <Link href="/library" className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur text-white font-bold rounded-xl hover:bg-white/30 transition-all border border-white/30">
-                    <BookOpen size={18} /> Browse Library
-                  </Link>
-              </div>
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                <div className="max-w-2xl">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 font-bold text-xs mb-6 tracking-wide uppercase shadow-sm">
+                        <Calendar size={14} />
+                        <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                    <h1 className="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight leading-tight">
+                        {greeting}, <br className="hidden md:block" />
+                        <span className="text-tacsfon-orange">{userName}</span>
+                    </h1>
+                    <p className="text-emerald-50/80 text-lg md:text-xl font-medium max-w-xl leading-relaxed">
+                        Ready to achieve your academic goals today? You are on a <span className="text-tacsfon-orange font-extrabold flex items-center inline-flex gap-1"><Flame size={20} className="text-tacsfon-orange"/> {stats.streak}-day streak</span>.
+                    </p>
+                </div>
+                
+                {/* Hero Actions */}
+                <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+                    <Link href="/learning-hub" className="group relative px-8 py-4 bg-tacsfon-orange text-white font-bold rounded-2xl overflow-hidden shadow-lg shadow-tacsfon-orange/30 transition-transform hover:-translate-y-1 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                      <span className="relative z-10 flex items-center gap-2">
+                        <Brain size={20} /> Practice Now
+                      </span>
+                    </Link>
+                    <Link href="/library" className="group px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-2xl border border-white/20 hover:bg-white/20 transition-all flex items-center justify-center gap-2">
+                      <BookOpen size={20} /> Browse Library
+                    </Link>
+                </div>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* --- MAIN DASHBOARD CONTENT --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            {/* --- LEFT COLUMN: MAIN CONTENT --- */}
-            <div className="lg:col-span-2 space-y-8">
+            {/* --- LEFT COLUMN: STATS & QUICK ACTIONS (8/12) --- */}
+            <div className="lg:col-span-8 space-y-8">
                 
-                {/* ENHANCED STATS ROW */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* GLASSMORPHIC STATS ROW */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {/* Books Read */}
-                    <div className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-green-200 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Books Read</span>
-                          <div className="p-2 bg-green-100 text-tacsfon-green rounded-lg group-hover:scale-110 transition-transform">
-                            <BookOpen size={16} />
-                          </div>
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-emerald-50 text-tacsfon-green rounded-xl group-hover:scale-110 transition-transform">
+                          <BookOpen size={20} />
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.booksRead}</span>
-                        <p className="text-xs text-gray-400 mt-1">This semester</p>
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Read</span>
                       </div>
+                      <span className="text-4xl font-extrabold text-gray-900 block">{stats.booksRead}</span>
+                      <p className="text-xs text-gray-500 mt-2 font-medium">Total completed</p>
                     </div>
 
                     {/* Hours Read */}
-                    <div className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-orange-200 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-orange-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Est. Hours</span>
-                          <div className="p-2 bg-orange-100 text-tacsfon-orange rounded-lg group-hover:scale-110 transition-transform">
-                            <Clock size={16} />
-                          </div>
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/5 transition-all group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-orange-50 text-tacsfon-orange rounded-xl group-hover:scale-110 transition-transform">
+                          <Clock size={20} />
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.hoursRead}</span>
-                        <p className="text-xs text-gray-400 mt-1">Reading time</p>
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Hours</span>
                       </div>
+                      <span className="text-4xl font-extrabold text-gray-900 block">{stats.hoursRead}</span>
+                      <p className="text-xs text-gray-500 mt-2 font-medium">Time invested</p>
                     </div>
 
                     {/* Active Borrows */}
-                    <div className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Borrowed</span>
-                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:scale-110 transition-transform">
-                            <MapPin size={16} />
-                          </div>
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+                          <MapPin size={20} />
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.activeBorrows}</span>
-                        <p className="text-xs text-gray-400 mt-1">Physical books</p>
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Loans</span>
                       </div>
+                      <span className="text-4xl font-extrabold text-gray-900 block">{stats.activeBorrows}</span>
+                      <p className="text-xs text-gray-500 mt-2 font-medium">Physical books</p>
                     </div>
 
                     {/* Reading Streak */}
-                    <div className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-amber-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Streak</span>
-                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg group-hover:scale-110 transition-transform">
-                            <Flame size={16} />
-                          </div>
+                    <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 hover:border-rose-200 hover:shadow-xl hover:shadow-rose-500/5 transition-all group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-rose-50 text-rose-500 rounded-xl group-hover:scale-110 transition-transform">
+                          <Flame size={20} />
                         </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.streak}</span>
-                        <p className="text-xs text-gray-400 mt-1">Days 🔥</p>
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Streak</span>
                       </div>
+                      <span className="text-4xl font-extrabold text-gray-900 block">{stats.streak}</span>
+                      <p className="text-xs text-gray-500 mt-2 font-medium">Days active</p>
+                    </div>
+                </div>
+
+                {/* QUICK ACCESS CARDS */}
+                <div>
+                    <h3 className="font-extrabold text-gray-900 mb-6 text-xl flex items-center gap-2">
+                        <Zap size={24} className="text-tacsfon-orange fill-tacsfon-orange/20"/> Explore Hubs
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <Link href="/learning-hub" className="group relative p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-tacsfon-green/10 transition-all overflow-hidden flex items-center justify-between">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-50 rounded-full -translate-y-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div className="relative z-10 flex items-center gap-5">
+                                <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 text-tacsfon-green rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner"><Brain size={28} /></div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 mb-1">Learning Hub</h4>
+                                    <p className="text-sm text-gray-500 font-medium">CBT Practice & Mock Exams</p>
+                                </div>
+                            </div>
+                            <div className="relative z-10 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-tacsfon-green group-hover:text-white transition-colors">
+                              <ArrowRight size={20} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all"/>
+                            </div>
+                        </Link>
+
+                        <Link href="/resources" className="group relative p-8 bg-white border border-gray-100 rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-tacsfon-orange/10 transition-all overflow-hidden flex items-center justify-between">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-orange-50 rounded-full -translate-y-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div className="relative z-10 flex items-center gap-5">
+                                <div className="w-14 h-14 bg-gradient-to-br from-orange-100 to-orange-50 text-tacsfon-orange rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner"><BookOpen size={28} /></div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 mb-1">Academic Hub</h4>
+                                    <p className="text-sm text-gray-500 font-medium">Lecture Notes & Materials</p>
+                                </div>
+                            </div>
+                            <div className="relative z-10 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-tacsfon-orange group-hover:text-white transition-colors">
+                              <ArrowRight size={20} className="text-gray-400 group-hover:text-white group-hover:translate-x-1 transition-all"/>
+                            </div>
+                        </Link>
                     </div>
                 </div>
 
                 {/* PHYSICAL LIBRARY STATUS */}
                 {(activeLoans.length > 0 || pendingLoans.length > 0) && (
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow">
-                        <h3 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                            <MapPin size={20} className="text-tacsfon-green"/> My Book Bag
+                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+                        <h3 className="font-extrabold text-gray-900 mb-6 text-xl flex items-center gap-2">
+                            <MapPin size={24} className="text-blue-500 fill-blue-500/20"/> My Physical Book Bag
                         </h3>
-                        <div className="space-y-3">
-                            {/* Pending Requests */}
-                            {pendingLoans.map(loan => (
-                                <div key={loan.id} className="p-4 bg-gradient-to-r from-orange-50 to-orange-50/50 rounded-xl border border-orange-100 flex items-center justify-between hover:shadow-md transition-shadow">
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{loan.book_title}</p>
-                                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                            <AlertCircle size={12}/> Waiting for Librarian approval...
-                                        </p>
-                                    </div>
-                                    <span className="text-xs font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-sm">Pending</span>
-                                </div>
-                            ))}
-
-                            {/* Active Loans */}
-                            {activeLoans.map(loan => (
-                                <div key={loan.id} className="p-4 bg-gradient-to-r from-green-50 to-green-50/50 rounded-xl border border-green-100 flex items-center justify-between hover:shadow-md transition-shadow group">
-                                    <div className="flex-1">
-                                        <p className="font-bold text-gray-800 text-sm group-hover:text-tacsfon-green transition-colors">{loan.book_title}</p>
-                                        <p className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                            <CheckCircle size={12}/> Due: {new Date(loan.due_date).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                    <div className="text-center ml-4">
-                                        <div className="text-2xl font-bold text-gray-800 leading-none">
-                                            {Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
-                                        </div>
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase">Days Left</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* QUICK ACTIONS CARDS */}
-                <div>
-                    <h3 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                        <Zap size={20} className="text-tacsfon-orange"/> Quick Access
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Link href="/learning-hub" className="group relative p-6 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-2xl shadow-sm hover:shadow-xl hover:border-tacsfon-green/50 transition-all overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full -translate-y-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="relative z-10 flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                  <div className="p-3 bg-gradient-to-br from-green-100 to-green-50 text-tacsfon-green rounded-xl group-hover:scale-110 transition-transform shadow-sm"><Brain size={24} /></div>
-                                  <div>
-                                      <h4 className="font-bold text-gray-900">Learning Hub</h4>
-                                      <p className="text-xs text-gray-500">Practice exams & revision</p>
-                                  </div>
-                              </div>
-                              <ArrowRight size={20} className="text-gray-300 group-hover:text-tacsfon-green group-hover:translate-x-1 transition-all"/>
-                            </div>
-                        </Link>
-
-                        <Link href="/resources" className="group relative p-6 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-2xl shadow-sm hover:shadow-xl hover:border-tacsfon-orange/50 transition-all overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -translate-y-1/2 translate-x-1/4 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="relative z-10 flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                  <div className="p-3 bg-gradient-to-br from-orange-100 to-orange-50 text-tacsfon-orange rounded-xl group-hover:scale-110 transition-transform shadow-sm"><BookOpen size={24} /></div>
-                                  <div>
-                                      <h4 className="font-bold text-gray-900">Academic Hub</h4>
-                                      <p className="text-xs text-gray-500">Lecture notes & materials</p>
-                                  </div>
-                              </div>
-                              <ArrowRight size={20} className="text-gray-300 group-hover:text-tacsfon-orange group-hover:translate-x-1 transition-all"/>
-                            </div>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* RECOMMENDED BOOKS */}
-                <div>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-gray-900 text-lg">Recommended For You</h3>
-                        <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:text-green-700 transition-colors flex items-center gap-1">View More <ArrowRight size={14} /></Link>
-                    </div>
-                    
-                    {recommendedBooks.length === 0 ? (
-                        <div className="p-12 bg-white rounded-2xl border border-gray-100 text-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                                <BookOpen size={32} />
-                            </div>
-                            <p className="text-gray-400 text-sm">Library is currently updating...</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {recommendedBooks.map((book) => (
-                                <Link key={book.id} href={`/book/${book.id}`} className="group">
-                                    <div className="aspect-[2/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative shadow-sm group-hover:shadow-xl transition-all group-hover:scale-105">
-                                        <img 
-                                            src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,5)}`} 
-                                            alt={book.title} 
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
-                                          <span className="text-white text-xs font-bold bg-tacsfon-orange/90 px-3 py-1 rounded-full">View</span>
-                                        </div>
-                                    </div>
-                                    <h4 className="font-bold text-gray-900 text-sm truncate group-hover:text-tacsfon-green transition-colors">{book.title}</h4>
-                                    <p className="text-xs text-gray-500 truncate">{book.author}</p>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-            </div>
-
-            {/* --- RIGHT COLUMN: SIDEBAR --- */}
-            <div className="space-y-6">
-                {/* RECENT ACTIVITY */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow">
-                    <h3 className="font-bold text-gray-900 mb-6 text-lg">Recent Activity</h3>
-                    
-                    {recentBooks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-center">
-                            <div className="w-16 h-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                                <Clock size={32} />
-                            </div>
-                            <p className="text-gray-900 font-bold mb-1">No activity yet</p>
-                            <p className="text-xs text-gray-400 max-w-[200px] mb-4">
-                                Books you read will appear here
-                            </p>
-                            <Link href="/library" className="px-6 py-2 bg-gradient-to-r from-tacsfon-green to-green-600 text-white text-xs font-bold rounded-full hover:shadow-lg transition-shadow">
-                                Start Reading
-                            </Link>
-                        </div>
-                    ) : (
                         <div className="space-y-4">
-                            {recentBooks.slice(0, 5).map((entry: any) => (
-                                <Link key={entry.book_id} href={`/book/${entry.book_id}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-all group">
-                                    <div className="h-14 w-10 bg-gradient-to-br from-gray-200 to-gray-300 rounded overflow-hidden flex-shrink-0 shadow-sm group-hover:shadow-md">
-                                        <img 
-                                          src={entry.books?.cover_url || "https://placehold.co/100x150"} 
-                                          alt="cover" 
-                                          className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-gray-900 text-xs line-clamp-2 group-hover:text-tacsfon-green transition-colors">{entry.books?.title}</h4>
-                                        <p className="text-[11px] text-gray-500 truncate">{entry.books?.author}</p>
-                                        <span className="text-[10px] text-tacsfon-green font-bold mt-0.5 block">Continued reading</span>
-                                    </div>
-                                </Link>
-                            ))}
-                            
-                            <div className="pt-4 border-t border-gray-100 text-center">
-                                <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:text-green-700 transition-colors">View Full History</Link>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* SETTINGS & PROFILE */}
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-3">
-                    <Link href="/dashboard/settings" className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors group">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:scale-110 transition-transform">
-                                <Settings size={18} />
-                            </div>
-                            <span className="font-bold text-gray-900 text-sm">Profile Settings</span>
-                        </div>
-                        <ArrowRight size={16} className="text-gray-300 group-hover:text-blue-600 transition-colors" />
-                    </Link>
-                    <button onClick={handleLogout} className="w-full flex items-center justify-between p-3 hover:bg-red-50 rounded-xl transition-colors group">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-100 text-red-600 rounded-lg group-hover:scale-110 transition-transform">
-                                <LogOut size={18} />
-                            </div>
-                            <span className="font-bold text-gray-900 text-sm">Sign Out</span>
-                        </div>
-                        <ArrowRight size={16} className="text-gray-300 group-hover:text-red-600 transition-colors" />
-                    </button>
-                </div>
-            </div>
-
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// Icon Helper
-function VideoIcon({size}: {size: number}) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-    )
-}
-
-export default function StudentDashboard() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [userName, setUserName] = useState('Scholar');
-  const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
-  const [greeting, setGreeting] = useState('');
-  
-  // --- REAL DATA STATES ---
-  const [recentBooks, setRecentBooks] = useState<any[]>([]);
-  const [loans, setLoans] = useState<any[]>([]); // ✅ Added: State for physical loans
-  const [stats, setStats] = useState({
-    booksRead: 0,
-    hoursRead: 0,
-    activeBorrows: 0
-  });
-
-  // --- 1. DETERMINE TIME OF DAY ---
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
-  }, []);
-
-  // --- 2. SECURITY CHECK & DATA FETCH ---
-  useEffect(() => {
-    async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.replace('/student-login'); 
-        return;
-      }
-
-      setUser(session.user);
-      const email = session.user.email;
-
-      // Get Name
-      const fullName = session.user.user_metadata?.full_name;
-      if (fullName) setUserName(fullName.split(' ')[0]);
-
-      // --- A. FETCH READING HISTORY ---
-      const { data: history } = await supabase
-        .from('reading_history')
-        .select(`
-            last_read_at,
-            book_id,
-            books (id, title, author, cover_url)
-        `)
-        .eq('user_email', email)
-        .order('last_read_at', { ascending: false });
-
-      const historyData = history || [];
-      setRecentBooks(historyData);
-
-      // --- B. FETCH LOANS (Physical Books) --- ✅ NEW
-      const { data: loanData } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('student_email', email)
-        .order('request_date', { ascending: false });
-      
-      const allLoans = loanData || [];
-      setLoans(allLoans);
-
-      // Filter active loans for stats
-      const activeCount = allLoans.filter((l: any) => l.status === 'active').length;
-
-      // --- C. CALCULATE STATS ---
-      setStats({
-        booksRead: historyData.length,
-        hoursRead: historyData.length * 2, 
-        activeBorrows: activeCount // ✅ Updated to use real loan count
-      });
-
-      // --- D. FETCH RECOMMENDED ---
-      const { data: books } = await supabase
-        .from('books')
-        .select('*')
-        .limit(4);
-      
-      setRecommendedBooks(books || []);
-      setLoading(false); 
-    }
-    init();
-  }, [router]);
-
-  const handleLogout = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    router.replace('/student-login'); 
-  };
-
-  // ✅ Helper variables for UI
-  const pendingLoans = loans.filter(l => l.status === 'requested');
-  const activeLoans = loans.filter(l => l.status === 'active');
-
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 border-4 border-tacsfon-green border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-bold text-sm animate-pulse">Loading Your Profile...</p>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-20">
-      
-      {/* --- HEADER SECTION --- */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-             <Link href="/" className="flex items-center gap-2">
-                <img src="/tacsfon-brand.png" alt="Logo" className="h-8 w-auto" />
-             </Link>
-             <div className="flex items-center gap-4">
-                 <div className="hidden md:flex flex-col items-end mr-2">
-                     <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Student ID</span>
-                     <span className="text-sm font-bold text-gray-900">{user?.email?.split('@')[0]}</span>
-                 </div>
-                 <div className="h-10 w-10 bg-tacsfon-green text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg shadow-green-100">
-                     {user?.email?.charAt(0).toUpperCase()}
-                 </div>
-             </div>
-         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* --- WELCOME CARD --- */}
-        <div className="bg-white rounded-3xl p-8 shadow-xl shadow-gray-100 border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50" />
-            
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                <div>
-                    <div className="flex items-center gap-2 text-tacsfon-green font-bold text-sm mb-2">
-                        <Calendar size={16} />
-                        <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
-                        {greeting}, <span className="text-gray-400">{userName}.</span>
-                    </h1>
-                    <p className="text-gray-500 max-w-lg">
-                        Ready to expand your horizon? Your digital library is ready.
-                    </p>
-                </div>
-                
-                <div className="flex gap-3">
-                    <Link href="/dashboard/settings" className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm text-sm">
-                        <Settings size={18} /> Settings
-                    </Link>
-                    
-                    <button onClick={handleLogout} className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-500 font-bold rounded-xl hover:bg-red-100 transition-colors shadow-sm text-sm">
-                        <LogOut size={18} /> Sign Out
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* --- LEFT COLUMN: STATS & ACTIONS --- */}
-            <div className="lg:col-span-2 space-y-8">
-                
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                        <div className="flex items-center gap-3 text-blue-600 mb-2">
-                            <BookOpen size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Books Read</span>
-                        </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.booksRead}</span>
-                    </div>
-                    <div className="bg-orange-50 p-5 rounded-2xl border border-orange-100">
-                        <div className="flex items-center gap-3 text-orange-600 mb-2">
-                            <Clock size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Est. Hours</span>
-                        </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.hoursRead}</span>
-                    </div>
-                    <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100">
-                        <div className="flex items-center gap-3 text-purple-600 mb-2">
-                            <Award size={20} /> <span className="text-xs font-bold uppercase tracking-wider">Active Borrows</span>
-                        </div>
-                        <span className="text-3xl font-extrabold text-gray-900">{stats.activeBorrows}</span>
-                    </div>
-                </div>
-
-                {/* ✅ NEW: PHYSICAL LIBRARY STATUS (Loans & Requests) */}
-                {(activeLoans.length > 0 || pendingLoans.length > 0) && (
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-in fade-in">
-                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <MapPin size={20} className="text-tacsfon-green"/> My Book Bag
-                        </h3>
-                        <div className="space-y-3">
                             {/* Pending Requests */}
                             {pendingLoans.map(loan => (
-                                <div key={loan.id} className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{loan.book_title}</p>
-                                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1">
-                                            <AlertCircle size={12}/> Waiting for Librarian approval...
-                                        </p>
+                                <div key={loan.id} className="p-5 bg-gradient-to-r from-orange-50 to-white rounded-2xl border border-orange-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1"><AlertCircle size={20} className="text-orange-500" /></div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-base">{loan.book_title}</p>
+                                            <p className="text-sm text-orange-600 font-medium mt-1">Waiting for Librarian approval...</p>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-bold bg-white text-orange-600 px-3 py-1 rounded-full shadow-sm">Pending</span>
+                                    <span className="text-xs font-bold bg-white text-orange-600 px-4 py-2 rounded-xl shadow-sm border border-orange-100 whitespace-nowrap text-center">Request Pending</span>
                                 </div>
                             ))}
 
                             {/* Active Loans */}
                             {activeLoans.map(loan => (
-                                <div key={loan.id} className="p-4 bg-green-50 rounded-xl border border-green-100 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{loan.book_title}</p>
-                                        <p className="text-xs text-green-700 flex items-center gap-1 mt-1">
-                                            <CheckCircle size={12}/> Due: {new Date(loan.due_date).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-xl font-bold text-gray-800 leading-none">
-                                            {Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                                <div key={loan.id} className="p-5 bg-gradient-to-r from-emerald-50 to-white rounded-2xl border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1"><CheckCircle size={20} className="text-emerald-500" /></div>
+                                        <div>
+                                            <p className="font-bold text-gray-900 text-base group-hover:text-tacsfon-green transition-colors">{loan.book_title}</p>
+                                            <p className="text-sm text-emerald-700 font-medium mt-1">Due Date: {new Date(loan.due_date).toLocaleDateString()}</p>
                                         </div>
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase">Days Left</div>
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-xl border border-emerald-100 shadow-sm shrink-0">
+                                        <Clock size={16} className="text-emerald-500"/>
+                                        <div className="flex flex-col">
+                                          <span className="text-lg font-extrabold text-gray-900 leading-none">
+                                              {Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                                          </span>
+                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Days Left</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-
-                {/* Quick Actions */}
-                <div>
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <TrendingUp size={20} className="text-tacsfon-green"/> Quick Access
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Link href="/resources" className="group p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:scale-110 transition-transform"><BookOpen size={24} /></div>
-                                <div>
-                                    <h4 className="font-bold text-gray-900">Academic Hub</h4>
-                                    <p className="text-xs text-gray-500">Lecture notes & handouts</p>
-                                </div>
-                            </div>
-                            <ArrowRight size={20} className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all"/>
-                        </Link>
-
-                        <Link href="/media" className="group p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-orange-200 transition-all flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-orange-100 text-orange-600 rounded-xl group-hover:scale-110 transition-transform"><VideoIcon size={24} /></div>
-                                <div>
-                                    <h4 className="font-bold text-gray-900">Sermons</h4>
-                                    <p className="text-xs text-gray-500">Audio & Video messages</p>
-                                </div>
-                            </div>
-                            <ArrowRight size={20} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all"/>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Recommended Section */}
-                <div>
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-gray-900">Recommended For You</h3>
-                        <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:underline">View Library</Link>
-                    </div>
-                    
-                    {recommendedBooks.length === 0 ? (
-                        <div className="p-8 bg-white rounded-2xl border border-gray-100 text-center text-gray-400 text-sm">
-                            Library is currently updating...
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {recommendedBooks.map((book) => (
-                                <Link key={book.id} href={`/book/${book.id}`} className="block group">
-                                    <div className="aspect-[2/3] bg-gray-100 rounded-xl overflow-hidden mb-3 relative shadow-sm group-hover:shadow-lg transition-all">
-                                        <img 
-                                            src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,5)}`} 
-                                            alt={book.title} 
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    <h4 className="font-bold text-gray-900 text-sm truncate">{book.title}</h4>
-                                    <p className="text-xs text-gray-500 truncate">{book.author}</p>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
             </div>
 
-            {/* --- RIGHT COLUMN: RECENT ACTIVITY --- */}
-            <div className="space-y-6">
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-full">
-                    <h3 className="font-bold text-gray-900 mb-6">Recent Activity</h3>
+            {/* --- RIGHT COLUMN: SIDEBAR (4/12) --- */}
+            <div className="lg:col-span-4 space-y-8">
+                
+                {/* RECENT ACTIVITY */}
+                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-extrabold text-gray-900 text-xl">Jump Back In</h3>
+                    </div>
                     
                     {recentBooks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-64 text-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                                <Clock size={32} />
+                        <div className="flex flex-col items-center justify-center py-12 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 text-gray-400 shadow-sm">
+                                <PlayCircle size={32} />
                             </div>
-                            <p className="text-gray-900 font-bold mb-1">No history yet</p>
-                            <p className="text-xs text-gray-400 max-w-[200px]">
-                                Books you read or download will appear here automatically.
+                            <p className="text-gray-900 font-bold mb-2">No active reading</p>
+                            <p className="text-sm text-gray-500 max-w-[200px] mb-6">
+                                Books you start reading will appear here.
                             </p>
-                            <Link href="/library" className="mt-6 px-6 py-2 bg-tacsfon-green text-white text-xs font-bold rounded-full hover:bg-green-700 transition-colors">
-                                Start Reading
+                            <Link href="/library" className="px-6 py-3 bg-tacsfon-green text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-tacsfon-green/30">
+                                Browse Books
                             </Link>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {recentBooks.slice(0, 4).map((entry: any) => (
-                                <Link key={entry.book_id} href={`/book/${entry.book_id}`} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors group">
-                                    <div className="h-16 w-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                                        <img 
-                                          src={entry.books?.cover_url || "https://placehold.co/100x150"} 
+                                <Link key={entry.book_id} href={`/book/${entry.book_id}`} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl transition-all group">
+                                    <div className="h-20 w-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow relative">
+                                        <Image 
+                                          src={entry.books?.cover_url || "https://placehold.co/100x150?text=Book"} 
                                           alt="cover" 
-                                          className="w-full h-full object-cover" 
+                                          fill
+                                          className="object-cover" 
                                         />
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-tacsfon-green transition-colors">{entry.books?.title}</h4>
-                                        <p className="text-xs text-gray-500">{entry.books?.author}</p>
-                                        <span className="text-[10px] text-gray-400 mt-1 block">Continued reading...</span>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-gray-900 text-sm line-clamp-2 group-hover:text-tacsfon-green transition-colors mb-1">{entry.books?.title}</h4>
+                                        <p className="text-xs text-gray-500 truncate font-medium">{entry.books?.author}</p>
+                                        <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-tacsfon-orange bg-orange-50 w-fit px-2 py-1 rounded-md">
+                                            <PlayCircle size={12} /> Continue
+                                        </div>
                                     </div>
                                 </Link>
                             ))}
                             
-                            <div className="pt-4 border-t border-gray-100 text-center">
-                                <Link href="/library" className="text-xs font-bold text-tacsfon-green hover:underline">View Full Library</Link>
+                            <div className="pt-6 border-t border-gray-100">
+                                <Link href="/library" className="w-full flex justify-center items-center gap-2 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-bold text-gray-600 transition-colors">
+                                    View Full Library <ArrowRight size={16} />
+                                </Link>
                             </div>
                         </div>
                     )}
+                </div>
 
+                {/* SETTINGS & LOGOUT */}
+                <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-4">
+                    <Link href="/dashboard/settings" className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors group">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2.5 bg-gray-100 text-gray-600 rounded-xl group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                <Settings size={20} />
+                            </div>
+                            <span className="font-bold text-gray-900">Profile Settings</span>
+                        </div>
+                        <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                    </Link>
+                    <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 hover:bg-rose-50 rounded-xl transition-colors group mt-2">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2.5 bg-gray-100 text-gray-600 rounded-xl group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors">
+                                <LogOut size={20} />
+                            </div>
+                            <span className="font-bold text-gray-900 group-hover:text-rose-600 transition-colors">Sign Out</span>
+                        </div>
+                    </button>
                 </div>
             </div>
 
         </div>
+        
+        {/* RECOMMENDED BOOKS BOTTOM ROW */}
+        <div className="pt-8 border-t border-gray-200">
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h3 className="font-extrabold text-gray-900 text-2xl mb-1">Recommended For You</h3>
+                    <p className="text-gray-500 font-medium">Curated reads to expand your knowledge.</p>
+                </div>
+                <Link href="/library" className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:border-tacsfon-green hover:text-tacsfon-green transition-colors">
+                    Explore All <ArrowRight size={16} />
+                </Link>
+            </div>
+            
+            {recommendedBooks.length === 0 ? (
+                <div className="p-12 bg-white rounded-3xl border border-gray-100 text-center text-gray-500 font-medium">
+                    Our library curation is currently updating. Check back soon!
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {recommendedBooks.map((book) => (
+                        <Link key={book.id} href={`/book/${book.id}`} className="group block">
+                            <div className="aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden mb-4 relative shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 transition-all duration-300">
+                                <Image 
+                                    src={book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,5)}`} 
+                                    alt={book.title} 
+                                    fill
+                                    className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                    <span className="bg-tacsfon-orange text-white text-xs font-bold px-4 py-2 rounded-xl backdrop-blur-sm">View Details</span>
+                                </div>
+                            </div>
+                            <h4 className="font-bold text-gray-900 text-base truncate group-hover:text-tacsfon-green transition-colors">{book.title}</h4>
+                            <p className="text-sm text-gray-500 truncate font-medium mt-1">{book.author}</p>
+                        </Link>
+                    ))}
+                </div>
+            )}
+        </div>
+
       </main>
     </div>
   );
-}
-
-// Icon Helper
-function VideoIcon({size}: {size: number}) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-    )
 }

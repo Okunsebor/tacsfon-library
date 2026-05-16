@@ -46,8 +46,8 @@ function SessionContent() {
   // Track answers: { courseName: { questionId: selectedOptionId } }
   const [answers, setAnswers] = useState<Record<string, Record<number, string>>>({});
   
-  // Timer state
-  const [timeLeft, setTimeLeft] = useState(3 * 60 * 60); // 3 hours in seconds
+  // Timer state per course: { courseName: secondsLeft }
+  const [timers, setTimers] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const courseParam = searchParams.get('courses');
@@ -64,35 +64,44 @@ function SessionContent() {
     
     setCourses(initialData);
 
-    // Initialize current question tracking and answers tracking
+    // Initialize current question tracking, answers tracking, and timers
     const initialQs: Record<string, number> = {};
     const initialAns: Record<string, Record<number, string>> = {};
+    const initialTimers: Record<string, number> = {};
     
     courseNames.forEach(name => {
       initialQs[name] = 0;
       initialAns[name] = {};
+      initialTimers[name] = 45 * 60; // Default 45 minutes per test
     });
     
     setCurrentQuestions(initialQs);
     setAnswers(initialAns);
+    setTimers(initialTimers);
 
   }, [searchParams, router]);
 
-  // Timer Countdown
+  // Timer Countdown (Active Course Only)
   useEffect(() => {
     if (courses.length === 0) return;
+    const activeName = courses[activeCourseIdx]?.name;
+    if (!activeName) return;
+
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
+      setTimers(prev => {
+        const currentLeft = prev[activeName];
+        if (currentLeft === undefined) return prev;
+
+        if (currentLeft <= 1) {
           clearInterval(timer);
-          handleFinalSubmit();
-          return 0;
+          // Optional: handle auto-submit or freeze course when time is up
+          return { ...prev, [activeName]: 0 };
         }
-        return prev - 1;
+        return { ...prev, [activeName]: currentLeft - 1 };
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [courses]);
+  }, [courses, activeCourseIdx]);
 
   if (courses.length === 0) return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading Session...</div>;
 
@@ -173,12 +182,15 @@ function SessionContent() {
              <span className="text-sm font-bold uppercase tracking-wider">John Doe</span>
           </div>
           
-          <button onClick={handleFinalSubmit} className="bg-tacsfon-orange hover:bg-orange-600 text-white px-6 py-3 font-bold text-sm flex items-center gap-2 transition-colors rounded-lg shadow-lg hover:shadow-orange-600/30">
+          <button onClick={handleFinalSubmit} className="hidden md:flex bg-tacsfon-orange hover:bg-orange-600 text-white px-6 py-3 font-bold text-sm items-center gap-2 transition-colors rounded-lg shadow-lg hover:shadow-orange-600/30">
             <CheckCircle2 size={16} /> Submit Test
           </button>
           
-          <div className="bg-tacsfon-green text-white px-6 py-3 font-bold flex items-center gap-2 tracking-widest rounded-lg">
-            <Clock size={18} /> {formatTime(timeLeft)}
+          <div className="bg-tacsfon-green border border-green-600 text-white px-6 py-3 font-bold flex items-center gap-2 tracking-widest rounded-lg shadow-inner">
+            <Clock size={18} className={timers[activeCourse?.name] < 300 ? 'text-red-300 animate-pulse' : 'text-green-300'} /> 
+            <span className={timers[activeCourse?.name] < 300 ? 'text-red-100' : ''}>
+              {formatTime(timers[activeCourse?.name] || 0)}
+            </span>
           </div>
         </div>
       </header>
@@ -265,24 +277,33 @@ function SessionContent() {
           </div>
 
           {/* Navigation Controls */}
-          <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200 flex items-center gap-4 rounded-b-xl">
+          <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-4 rounded-b-xl">
+            <div className="flex gap-4">
+              <button 
+                onClick={handlePrev}
+                disabled={qIdx === 0}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-bold text-white transition-all shadow-sm ${
+                  qIdx === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#48bb78] hover:bg-green-600 hover:shadow-md'
+                }`}
+              >
+                <ArrowLeft size={18} /> Previous
+              </button>
+              <button 
+                onClick={handleNext}
+                disabled={qIdx === activeCourse.questions.length - 1}
+                className={`flex items-center gap-2 px-8 py-2.5 rounded-md font-bold text-white transition-all shadow-sm ${
+                  qIdx === activeCourse.questions.length - 1 ? 'bg-gray-300 cursor-not-allowed' : 'bg-tacsfon-orange hover:bg-orange-600 hover:shadow-md'
+                }`}
+              >
+                Next <ArrowRight size={18} />
+              </button>
+            </div>
+            
             <button 
-              onClick={handlePrev}
-              disabled={qIdx === 0}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-md font-bold text-white transition-all ${
-                qIdx === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#48bb78] hover:bg-green-600'
-              }`}
+              onClick={handleFinalSubmit} 
+              className="flex items-center gap-2 px-8 py-2.5 rounded-md font-extrabold text-white bg-red-500 hover:bg-red-600 transition-all shadow-md hover:shadow-red-500/30"
             >
-              <ArrowLeft size={18} /> Previous
-            </button>
-            <button 
-              onClick={handleNext}
-              disabled={qIdx === activeCourse.questions.length - 1}
-              className={`flex items-center gap-2 px-8 py-2.5 rounded-md font-bold text-white transition-all ${
-                qIdx === activeCourse.questions.length - 1 ? 'bg-gray-300 cursor-not-allowed' : 'bg-tacsfon-orange hover:bg-orange-600'
-              }`}
-            >
-              Next <ArrowRight size={18} />
+              <CheckCircle2 size={18} /> Submit Test
             </button>
           </div>
         </div>

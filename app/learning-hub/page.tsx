@@ -43,21 +43,22 @@ export default function LearningHubHome() {
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
           
           {/* Header */}
-          <div className="bg-tacsfon-green text-white p-8 md:p-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-tacsfon-green/80 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+          <div className="bg-gradient-to-br from-tacsfon-green via-green-800 to-tacsfon-green text-white p-8 md:p-12 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-tacsfon-orange/30 rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/3"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl opacity-40 translate-y-1/2 -translate-x-1/4"></div>
             <div className="relative z-10 flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Brain size={28} />
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-inner border border-white/20">
+                <Brain size={28} className="text-white" />
               </div>
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Learning Hub</h1>
             </div>
-            <p className="text-white/80 max-w-xl text-lg relative z-10">
+            <p className="text-white/90 max-w-xl text-lg relative z-10 font-medium">
               Select up to 4 courses to start your practice session. Prepare effectively with our CBT simulator.
             </p>
           </div>
 
           {/* Body */}
-          <div className="p-8 md:p-12">
+          <div className="p-8 md:p-12 bg-white">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <BookOpen className="text-tacsfon-green" size={20} /> Available Courses
