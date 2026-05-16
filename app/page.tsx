@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { 
-  Search, BookOpen, ArrowRight, Folder, Video, ChevronLeft, ChevronRight, 
+  Search, BookOpen, ArrowRight, Folder, Brain, ChevronLeft, ChevronRight, 
   Users, Play, Flame, GraduationCap, Shield, Heart, TrendingUp 
 } from 'lucide-react';
 import EventShowcase from './components/EventShowcase';
@@ -256,24 +256,24 @@ export default function Home() {
                 </div>
             </Link>
 
-            {/* CARD 2: SERMONS & MEDIA */}
-            <Link href="/media" className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-orange hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col h-full justify-between">
+            {/* CARD 2: LEARNING HUB */}
+            <Link href="/learning-hub" className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 hover:border-blue-500 hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col h-full justify-between">
                 <div>
                     <div className="flex justify-between items-start mb-3 md:mb-4">
-                        <div className="w-10 h-10 md:w-14 md:h-14 bg-orange-50 rounded-xl md:rounded-2xl flex items-center justify-center text-tacsfon-orange group-hover:bg-tacsfon-orange group-hover:text-white transition-colors">
-                            <Video size={20} className="md:w-6 md:h-6" />
+                        <div className="w-10 h-10 md:w-14 md:h-14 bg-blue-50 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                            <Brain size={20} className="md:w-6 md:h-6" />
                         </div>
-                        <div className="bg-orange-100 text-orange-700 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">
-                            Media
+                        <div className="bg-blue-100 text-blue-700 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">
+                            Q&amp;A
                         </div>
                     </div>
-                    <h3 className="text-sm md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-tacsfon-orange leading-tight">Sermons & Media</h3>
+                    <h3 className="text-sm md:text-2xl font-bold text-gray-800 mb-1 md:mb-2 group-hover:text-blue-600 leading-tight">Learning Hub</h3>
                     <p className="text-[10px] md:text-base text-gray-500 mb-3 md:mb-6 leading-snug line-clamp-2 md:line-clamp-none">
-                        Stream audio messages, videos, and galleries.
+                        Practice questions, track performance, and prepare for exams.
                     </p>
                 </div>
-                <div className="flex items-center text-tacsfon-orange font-bold text-[10px] md:text-sm mt-auto">
-                    STREAM <ArrowRight size={14} className="ml-1 md:ml-2 group-hover:translate-x-1 transition-transform md:w-4 md:h-4"/>
+                <div className="flex items-center text-blue-600 font-bold text-[10px] md:text-sm mt-auto">
+                    PRACTICE <ArrowRight size={14} className="ml-1 md:ml-2 group-hover:translate-x-1 transition-transform md:w-4 md:h-4"/>
                 </div>
             </Link>
         </div>

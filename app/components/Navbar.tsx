@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Mic2, Info, Phone, LogIn } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Brain, Info, Phone, LogIn } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient'; // Ensure you have this import for auth check
 
@@ -61,7 +61,7 @@ export default function Navbar() {
             <div className="hidden lg:flex items-center gap-6">
               <Link href="/" className={`text-sm ${isActive('/')}`}>Home</Link>
               <Link href="/resources" className={`text-sm ${isActive('/resources')}`}>Academic Hub</Link>
-              <Link href="/media" className={`text-sm ${isActive('/media')}`}>Media</Link>
+              <Link href="/learning-hub" className={`text-sm ${isActive('/learning-hub')}`}>Learning Hub</Link>
               <Link href="/about" className={`text-sm ${isActive('/about')}`}>About Us</Link>
 
               {/* Quick Access Dropdown */}
@@ -125,7 +125,7 @@ export default function Navbar() {
                 )}
 
                 <MobileLink href="/resources" icon={<BookOpen size={22}/>} label="Academic Hub" />
-                <MobileLink href="/media" icon={<Mic2 size={22}/>} label="Media & Sermons" />
+                <MobileLink href="/learning-hub" icon={<Brain size={22}/>} label="Learning Hub" />
             </div>
 
             <hr className="my-6 border-gray-100" />
