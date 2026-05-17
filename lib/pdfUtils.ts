@@ -26,7 +26,7 @@ function ensureWorker(): void {
 
   // Use the exact installed version — no version mismatch surprises.
   const version = pdfjsLib.version;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
