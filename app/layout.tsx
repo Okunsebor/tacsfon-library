@@ -1,7 +1,8 @@
 import './globals.css';
 import Navbar from '@/app/components/Navbar';
-import Footer from '@/app/components/Footer'; // We will create this next
-import { Plus_Jakarta_Sans } from 'next/font/google'; // Premium Font Upgrade
+import Footer from '@/app/components/Footer';
+import FloatingPlayer from '@/app/components/FloatingPlayer';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 
 // Configure the Professional Font
 const jakarta = Plus_Jakarta_Sans({ 
@@ -31,6 +32,13 @@ export default function RootLayout({
         
         {/* The Professional Footer */}
         <Footer />
+
+        {/* 
+          FloatingPlayer lives here — OUTSIDE of <main> and after <Footer>.
+          Because it is 'fixed' positioned, it floats above all page content
+          and survives every client-side route change automatically.
+        */}
+        <FloatingPlayer />
       </body>
     </html>
   );

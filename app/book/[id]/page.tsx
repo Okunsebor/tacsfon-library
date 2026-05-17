@@ -2,11 +2,13 @@
 import { supabase } from '@/lib/supabaseClient';
 import FuturisticLoader from '@/app/components/FuturisticLoader';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { extractTextFromPDF } from '@/lib/pdfUtils';
+import AudioReader from '@/app/components/AudioReader';
 
 
 export default function BookDetails() {
@@ -26,6 +28,11 @@ export default function BookDetails() {
   const [newName, setNewName] = useState('');
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // --- AUDIO READER STATES ---
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -78,6 +85,24 @@ export default function BookDetails() {
       return url.replace(/\/view.*/, '/preview');
     }
     return url;
+  };
+
+  const handleListenToBook = async () => {
+    if (!book?.pdf_url) return;
+    
+    setIsExtractingText(true);
+    setExtractError(null);
+    setExtractedText('');
+    
+    try {
+      const { text } = await extractTextFromPDF(book.pdf_url);
+      setExtractedText(text);
+    } catch (error: any) {
+      console.error("Failed to extract text:", error);
+      setExtractError("Could not extract text for this book. It might be protected or unavailable.");
+    } finally {
+      setIsExtractingText(false);
+    }
   };
 
   const handleRequest = async (type: 'physical' | 'digital') => {
@@ -167,7 +192,7 @@ export default function BookDetails() {
                 </div>
 
                 {/* Mobile Action Button */}
-                <div className="lg:hidden">
+                <div className="lg:hidden flex flex-col gap-3">
                     {isReadable ? (
                         <a href="#reader-view" className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/30">
                             <BookOpen size={20} /> Read Now
@@ -176,6 +201,16 @@ export default function BookDetails() {
                          <button onClick={() => handleRequest('physical')} disabled={book.available_copies <= 0} className="w-full bg-white text-gray-900 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg">
                             Borrow Physical
                          </button>
+                    )}
+                    {isReadable && book.pdf_url && (
+                        <button 
+                            onClick={handleListenToBook}
+                            disabled={isExtractingText}
+                            className="w-full bg-white border-2 border-gray-900 text-gray-900 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                        >
+                            <Headphones size={20} /> 
+                            {isExtractingText ? 'Loading Audio...' : 'Listen to Book'}
+                        </button>
                     )}
                 </div>
             </div>
@@ -201,6 +236,24 @@ export default function BookDetails() {
                     </div>
 
                     <div className="mb-8">
+                        {/* Audio Reader UI */}
+                        {isExtractingText && (
+                            <div className="mb-6 p-4 bg-gray-100 rounded-xl flex items-center gap-3 animate-pulse">
+                                <Headphones className="text-gray-400" />
+                                <span className="text-gray-600 font-bold">Extracting book text...</span>
+                            </div>
+                        )}
+                        {extractError && (
+                            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">
+                                {extractError}
+                            </div>
+                        )}
+                        {extractedText && (
+                            <div className="mb-6">
+                                <AudioReader documentText={extractedText} />
+                            </div>
+                        )}
+
                         <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <BookOpen size={18} className="text-green-700"/> Synopsis
                         </h3>
@@ -240,6 +293,17 @@ export default function BookDetails() {
                               <BookOpen size={20} className="text-green-400" /> Read Digital Book
                             </Link>
                           )
+                        )}
+
+                        {isReadable && book.pdf_url && (
+                          <button 
+                            onClick={handleListenToBook}
+                            disabled={isExtractingText}
+                            className="bg-white border-2 border-gray-200 text-gray-900 hover:bg-gray-50 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                          >
+                            <Headphones size={20} /> 
+                            {isExtractingText ? 'Loading Audio...' : 'Listen to Book'}
+                          </button>
                         )}
 
                         {!isReadable && (
