@@ -221,15 +221,28 @@ export async function extractTextFromPDF(
   let fullText = pageTexts.join(preserveParagraphs ? '\n\n' : ' ');
 
   if (preserveParagraphs) {
-    // Collapse excessive blank lines (more than 2) but preserve paragraph breaks
     fullText = fullText
-      .replace(/[ \t]+/g, ' ')          // multiple spaces → single space
-      .replace(/\n{3,}/g, '\n\n')       // 3+ newlines → paragraph break
+      // 1. Fuse broken sentences: single newlines become spaces
+      .replace(/(?<!\n)\n(?!\n)/g, ' ')
+      // 2. Collapse excessive whitespace
+      .replace(/[ \t]+/g, ' ')
+      // 3. Ensure proper paragraph breaks
+      .replace(/\n{2,}/g, '\n\n')
       .trim();
   } else {
     // Flatten completely to a single space-separated string
     fullText = fullText.replace(/\s+/g, ' ').trim();
   }
+
+  // 4. Regex cleanup: Fix "spaced out" uppercase words (e.g. "C H A P T E R" -> "CHAPTER")
+  // Matches sequences of at least 3 uppercase letters separated by spaces.
+  fullText = fullText.replace(/\b([A-Z])(?:\s+([A-Z]))+\b/g, (match) => {
+    // Only condense if the match consists solely of letters and spaces
+    if (/^[A-Z\s]+$/.test(match)) {
+      return match.replace(/\s+/g, '');
+    }
+    return match;
+  });
 
   report('Done!', 100);
 

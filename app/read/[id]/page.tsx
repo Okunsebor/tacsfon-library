@@ -60,6 +60,8 @@ export default function BookReader() {
   const [speechRate, setSpeechRate] = useState(1);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechRateRef = useRef(1);
+  const sentenceQueueRef = useRef<string[]>([]);
+  const currentSentenceIdxRef = useRef<number>(0);
 
   // Refs
   const readingRef = useRef<HTMLDivElement>(null);
@@ -108,6 +110,8 @@ export default function BookReader() {
           // Build flat paragraph list for click-to-play
           const allParas: string[] = [];
           (parts.length > 0 ? parts : [text]).forEach((section: string) => {
+            // Because pdfUtils already fused broken sentences, single \n means a real line break or paragraph we want to preserve.
+            // Split by \n to get paragraph blocks.
             section.split(/\n/).filter((p: string) => p.trim().length > 5).forEach((p: string) => allParas.push(p.trim()));
           });
           setParagraphs(allParas);
@@ -192,39 +196,70 @@ export default function BookReader() {
   const stopSpeaking = useCallback(() => {
     window.speechSynthesis?.cancel();
     utteranceRef.current = null;
+    sentenceQueueRef.current = [];
     setSpeakingParagraph(null);
     setIsPaused(false);
   }, []);
 
-  const playParagraph = useCallback((paraIndex: number) => {
+  const playParagraph = useCallback((paraIndex: number, sentenceIdx: number = 0) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
-    window.speechSynthesis.cancel();
-    utteranceRef.current = null;
-    setIsPaused(false);
+    if (sentenceIdx === 0) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+      setIsPaused(false);
+    }
 
     const text = paragraphs[paraIndex]?.trim();
     if (!text) return;
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = speechRateRef.current;
-    utterance.lang = 'en-US';
+    if (sentenceIdx === 0) {
+      // Regex sentence boundary detection: chunks by punctuation (.!?) followed by space or end of string.
+      const chunks = text.match(/[^\.!\?]+[\.!\?]+(?:\s+|$)|[^\.!\?]+$/g) || [text];
+      sentenceQueueRef.current = chunks.map(s => s.trim()).filter(Boolean);
+      currentSentenceIdxRef.current = 0;
+    }
 
-    utterance.onstart = () => { setSpeakingParagraph(paraIndex); setIsPaused(false); };
-    utterance.onend = () => {
+    const sentences = sentenceQueueRef.current;
+
+    if (sentenceIdx >= sentences.length) {
+      // Auto-advance to next paragraph
       const next = paraIndex + 1;
       if (next < paragraphs.length) {
-        // Small delay for browser stability
-        setTimeout(() => playParagraph(next), 80);
+        setTimeout(() => playParagraph(next, 0), 80);
       } else {
         setSpeakingParagraph(null);
         utteranceRef.current = null;
+        sentenceQueueRef.current = [];
       }
+      return;
+    }
+
+    const utteranceText = sentences[sentenceIdx];
+    if (!utteranceText) {
+      playParagraph(paraIndex, sentenceIdx + 1);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(utteranceText);
+    utterance.rate = speechRateRef.current;
+    utterance.lang = 'en-US';
+
+    utterance.onstart = () => {
+      setSpeakingParagraph(paraIndex);
+      currentSentenceIdxRef.current = sentenceIdx;
+      setIsPaused(false);
     };
+
+    utterance.onend = () => {
+      playParagraph(paraIndex, sentenceIdx + 1);
+    };
+
     utterance.onerror = (e) => {
       if (e.error === 'interrupted') return;
       setSpeakingParagraph(null);
       utteranceRef.current = null;
+      sentenceQueueRef.current = [];
       setIsPaused(false);
     };
 
@@ -247,16 +282,16 @@ export default function BookReader() {
   const skipToNextParagraph = useCallback(() => {
     if (speakingParagraph === null) return;
     const next = speakingParagraph + 1;
-    if (next < paragraphs.length) playParagraph(next);
+    if (next < paragraphs.length) playParagraph(next, 0);
     else stopSpeaking();
   }, [speakingParagraph, paragraphs, playParagraph, stopSpeaking]);
 
   const handleSpeedChange = useCallback((newRate: number) => {
     setSpeechRate(newRate);
-    // If currently playing, restart current paragraph with new speed
+    // If currently playing, restart current paragraph from the CURRENT SENTENCE with new speed
     if (speakingParagraph !== null && !isPaused) {
       speechRateRef.current = newRate;
-      playParagraph(speakingParagraph);
+      playParagraph(speakingParagraph, currentSentenceIdxRef.current);
     }
   }, [speakingParagraph, isPaused, playParagraph]);
 
