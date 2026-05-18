@@ -1,14 +1,22 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { extractTextFromPDF } from '@/lib/pdfUtils';
-import AudioReader from '@/app/components/AudioReader';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, BookOpen, Loader2, Sun, Moon, Plus, Minus,
-  Menu, X, Headphones, ChevronUp, Library, AlertTriangle, Volume2
+  Menu, X, Headphones, ChevronUp, Library, AlertTriangle,
+  Volume2, Play, Pause, Square, Gauge, SkipForward
 } from 'lucide-react';
+
+const SPEED_OPTIONS = [
+  { label: '0.75×', value: 0.75 },
+  { label: '1×', value: 1 },
+  { label: '1.25×', value: 1.25 },
+  { label: '1.5×', value: 1.5 },
+  { label: '2×', value: 2 },
+];
 
 type Theme = 'light' | 'dark';
 
@@ -43,13 +51,15 @@ export default function BookReader() {
   const [fontSize, setFontSize] = useState(18);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [showAudio, setShowAudio] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
 
-  // Paragraph-level audio
+  // Paragraph-level audio (integrated)
   const [paragraphs, setParagraphs] = useState<string[]>([]);
   const [speakingParagraph, setSpeakingParagraph] = useState<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechRateRef = useRef(1);
 
   // Refs
   const readingRef = useRef<HTMLDivElement>(null);
@@ -175,33 +185,37 @@ export default function BookReader() {
     readingRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── PARAGRAPH CLICK-TO-PLAY ──
+  // Keep ref in sync with state so callbacks use latest value
+  useEffect(() => { speechRateRef.current = speechRate; }, [speechRate]);
+
+  // ── INTEGRATED AUDIO ENGINE ──
   const stopSpeaking = useCallback(() => {
     window.speechSynthesis?.cancel();
     utteranceRef.current = null;
     setSpeakingParagraph(null);
+    setIsPaused(false);
   }, []);
 
   const playParagraph = useCallback((paraIndex: number) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
-    // Cancel any current playback
     window.speechSynthesis.cancel();
     utteranceRef.current = null;
+    setIsPaused(false);
 
     const text = paragraphs[paraIndex]?.trim();
     if (!text) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
+    utterance.rate = speechRateRef.current;
     utterance.lang = 'en-US';
 
-    utterance.onstart = () => setSpeakingParagraph(paraIndex);
+    utterance.onstart = () => { setSpeakingParagraph(paraIndex); setIsPaused(false); };
     utterance.onend = () => {
-      // Auto-advance to next paragraph
       const next = paraIndex + 1;
       if (next < paragraphs.length) {
-        playParagraph(next);
+        // Small delay for browser stability
+        setTimeout(() => playParagraph(next), 80);
       } else {
         setSpeakingParagraph(null);
         utteranceRef.current = null;
@@ -211,11 +225,40 @@ export default function BookReader() {
       if (e.error === 'interrupted') return;
       setSpeakingParagraph(null);
       utteranceRef.current = null;
+      setIsPaused(false);
     };
 
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, [paragraphs]);
+
+  const pauseSpeaking = useCallback(() => {
+    if (speakingParagraph === null) return;
+    window.speechSynthesis?.pause();
+    setIsPaused(true);
+  }, [speakingParagraph]);
+
+  const resumeSpeaking = useCallback(() => {
+    if (!isPaused) return;
+    window.speechSynthesis?.resume();
+    setIsPaused(false);
+  }, [isPaused]);
+
+  const skipToNextParagraph = useCallback(() => {
+    if (speakingParagraph === null) return;
+    const next = speakingParagraph + 1;
+    if (next < paragraphs.length) playParagraph(next);
+    else stopSpeaking();
+  }, [speakingParagraph, paragraphs, playParagraph, stopSpeaking]);
+
+  const handleSpeedChange = useCallback((newRate: number) => {
+    setSpeechRate(newRate);
+    // If currently playing, restart current paragraph with new speed
+    if (speakingParagraph !== null && !isPaused) {
+      speechRateRef.current = newRate;
+      playParagraph(speakingParagraph);
+    }
+  }, [speakingParagraph, isPaused, playParagraph]);
 
   // Cleanup speech on unmount
   useEffect(() => {
@@ -419,14 +462,19 @@ export default function BookReader() {
 
           {/* Sidebar Actions */}
           <div className="p-4 mt-auto border-t space-y-2" style={{ borderColor }}>
-            {extractedText && (
+            {paragraphs.length > 0 && (
               <button
-                onClick={() => { setShowAudio(!showAudio); setSidebarOpen(false); }}
+                onClick={() => {
+                  if (speakingParagraph === null) playParagraph(0);
+                  else if (isPaused) resumeSpeaking();
+                  else pauseSpeaking();
+                  setSidebarOpen(false);
+                }}
                 className="w-full flex items-center gap-2 text-sm font-bold py-2.5 px-4 rounded-xl transition-all hover:opacity-80"
                 style={{ background: isDark ? 'rgba(247,148,29,0.12)' : 'rgba(247,148,29,0.08)', color: '#F7941D' }}
               >
-                <Headphones size={16} />
-                {showAudio ? 'Hide Audio Reader' : 'Listen to Book'}
+                {speakingParagraph !== null && !isPaused ? <Pause size={16} /> : <Headphones size={16} />}
+                {speakingParagraph !== null ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Listen to Book'}
               </button>
             )}
             <Link
@@ -450,12 +498,7 @@ export default function BookReader() {
         {/* ── READING COLUMN ── */}
         <main ref={readingRef} className="flex-1 overflow-y-auto min-h-0 scroll-smooth">
 
-          {/* Audio Reader (collapsible) */}
-          {showAudio && extractedText && (
-            <div className="sticky top-0 z-10 p-3 border-b" style={{ borderColor, background: bgSidebar }}>
-              <AudioReader documentText={extractedText} />
-            </div>
-          )}
+
 
           {/* Extracting state */}
           {extracting && (
@@ -551,18 +594,6 @@ export default function BookReader() {
                 });
               })()}
 
-              {/* Playback stop bar */}
-              {speakingParagraph !== null && (
-                <div className="sticky bottom-4 z-10 flex items-center justify-center mt-6">
-                  <button
-                    onClick={stopSpeaking}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
-                    style={{ background: isDark ? '#1E293B' : '#fff', color: accent, border: `1px solid ${borderColor}` }}
-                  >
-                    <Volume2 size={16} className="animate-pulse" /> Speaking §{speakingParagraph + 1} · Click to Stop
-                  </button>
-                </div>
-              )}
 
               {/* End of book */}
               <div className="text-center py-16 space-y-4 border-t mt-12" style={{ borderColor }}>
@@ -615,15 +646,81 @@ export default function BookReader() {
         </main>
       </div>
 
+      {/* ── INTEGRATED MINI PLAYER (fixed bottom) ── */}
+      {speakingParagraph !== null && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-40 border-t shadow-2xl transition-all duration-300"
+          style={{ borderColor, background: isDark ? 'rgba(11,17,32,0.97)' : 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)' }}
+        >
+          <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-3">
+            {/* Pulsing indicator */}
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative" style={{ background: isDark ? 'rgba(0,104,56,0.2)' : 'rgba(0,104,56,0.1)' }}>
+              <Volume2 size={16} style={{ color: accent }} className="animate-pulse" />
+            </div>
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold truncate" style={{ color: textColor }}>Paragraph {speakingParagraph + 1} of {paragraphs.length}</p>
+              <p className="text-[10px] truncate" style={{ color: textMuted }}>{paragraphs[speakingParagraph]?.substring(0, 60)}…</p>
+            </div>
+            {/* Controls */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Play / Pause */}
+              <button
+                onClick={() => isPaused ? resumeSpeaking() : pauseSpeaking()}
+                className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{ background: accent, color: '#fff' }}
+                title={isPaused ? 'Resume' : 'Pause'}
+              >
+                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
+              </button>
+              {/* Skip */}
+              <button
+                onClick={skipToNextParagraph}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: textColor }}
+                title="Next paragraph"
+              >
+                <SkipForward size={14} />
+              </button>
+              {/* Stop */}
+              <button
+                onClick={stopSpeaking}
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                style={{ background: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)', color: '#EF4444' }}
+                title="Stop"
+              >
+                <Square size={14} fill="currentColor" />
+              </button>
+              {/* Divider */}
+              <div className="w-px h-6 mx-1" style={{ background: borderColor }} />
+              {/* Speed */}
+              <div className="flex items-center gap-1">
+                <Gauge size={12} style={{ color: textMuted }} />
+                <select
+                  value={speechRate}
+                  onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                  className="text-xs font-bold rounded-lg px-1.5 py-1 outline-none cursor-pointer border-none"
+                  style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: textColor }}
+                >
+                  {SPEED_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── SCROLL TO TOP FAB ── */}
-      {scrollProgress > 20 && (
+      {scrollProgress > 15 && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-30 w-11 h-11 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-          style={{ background: accent, color: '#fff' }}
-          title="Scroll to top"
+          className={`fixed z-30 w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${speakingParagraph !== null ? 'bottom-20 right-5' : 'bottom-6 right-6'}`}
+          style={{ background: isDark ? '#1E293B' : '#fff', color: accent, border: `1px solid ${borderColor}` }}
+          title="Jump to top"
         >
-          <ChevronUp size={20} />
+          <ChevronUp size={22} />
         </button>
       )}
     </div>
