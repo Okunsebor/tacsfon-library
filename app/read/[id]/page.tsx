@@ -63,6 +63,10 @@ export default function BookReader() {
   const sentenceQueueRef = useRef<string[]>([]);
   const currentSentenceIdxRef = useRef<number>(0);
 
+  // Voice Selection
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>('');
+
   // Refs
   const readingRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -146,6 +150,46 @@ export default function BookReader() {
     el.addEventListener('scroll', handler, { passive: true });
     return () => el.removeEventListener('scroll', handler);
   }, [sections]);
+
+  // Load and sort voices
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const loadVoices = () => {
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices.length === 0) return;
+
+      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+
+      enVoices.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        const getScore = (name: string) => {
+          if (name.includes('natural')) return 4;
+          if (name.includes('google')) return 3;
+          if (name.includes('apple')) return 2;
+          return 1;
+        };
+
+        return getScore(bName) - getScore(aName);
+      });
+
+      setVoices(enVoices);
+      
+      setSelectedVoiceURI(current => {
+        if (!current && enVoices.length > 0) return enVoices[0].voiceURI;
+        return current;
+      });
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
+  }, []);
 
   // Theme toggle
   const toggleTheme = useCallback(() => {
@@ -245,6 +289,11 @@ export default function BookReader() {
     utterance.rate = speechRateRef.current;
     utterance.lang = 'en-US';
 
+    if (selectedVoiceURI) {
+      const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (voice) utterance.voice = voice;
+    }
+
     utterance.onstart = () => {
       setSpeakingParagraph(paraIndex);
       currentSentenceIdxRef.current = sentenceIdx;
@@ -291,6 +340,14 @@ export default function BookReader() {
     // If currently playing, restart current paragraph from the CURRENT SENTENCE with new speed
     if (speakingParagraph !== null && !isPaused) {
       speechRateRef.current = newRate;
+      playParagraph(speakingParagraph, currentSentenceIdxRef.current);
+    }
+  }, [speakingParagraph, isPaused, playParagraph]);
+
+  const handleVoiceChange = useCallback((newVoiceURI: string) => {
+    setSelectedVoiceURI(newVoiceURI);
+    // If currently playing, restart current paragraph from the CURRENT SENTENCE with new voice
+    if (speakingParagraph !== null && !isPaused) {
       playParagraph(speakingParagraph, currentSentenceIdxRef.current);
     }
   }, [speakingParagraph, isPaused, playParagraph]);
@@ -727,21 +784,24 @@ export default function BookReader() {
                 <Square size={14} fill="currentColor" />
               </button>
               {/* Divider */}
-              <div className="w-px h-6 mx-1" style={{ background: borderColor }} />
-              {/* Speed */}
-              <div className="flex items-center gap-1">
-                <Gauge size={12} style={{ color: textMuted }} />
-                <select
-                  value={speechRate}
-                  onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                  className="text-xs font-bold rounded-lg px-1.5 py-1 outline-none cursor-pointer border-none"
-                  style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: textColor }}
-                >
-                  {SPEED_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="w-px h-6 mx-1 hidden sm:block" style={{ background: borderColor }} />
+              {/* Voice */}
+              {voices.length > 0 && (
+                <div className="hidden sm:flex items-center max-w-[140px]">
+                  <select
+                    value={selectedVoiceURI}
+                    onChange={(e) => handleVoiceChange(e.target.value)}
+                    className="text-xs font-bold rounded-lg px-1.5 py-1 outline-none cursor-pointer border-none truncate w-full"
+                    style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: textColor }}
+                  >
+                    {voices.map(v => (
+                      <option key={v.voiceURI} value={v.voiceURI}>
+                        {v.name.replace(/(Microsoft|Google|Apple)\s/gi, '').substring(0, 25)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         </div>

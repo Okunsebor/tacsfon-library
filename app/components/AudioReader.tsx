@@ -21,6 +21,9 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const [readingState, setReadingState] = useState<ReadingState>('idle');
   const [rate, setRate] = useState(1);
   const [supported, setSupported] = useState(true);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>('');
+  
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Check for browser support on mount
@@ -34,6 +37,49 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   useEffect(() => {
     return () => {
       window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  // Load and sort voices
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const loadVoices = () => {
+      const allVoices = window.speechSynthesis.getVoices();
+      if (allVoices.length === 0) return;
+
+      // Filter to English only
+      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+
+      // Sort voices by hierarchy (Natural > Google > Apple > Default)
+      enVoices.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        const getScore = (name: string) => {
+          if (name.includes('natural')) return 4;
+          if (name.includes('google')) return 3;
+          if (name.includes('apple')) return 2;
+          return 1;
+        };
+
+        return getScore(bName) - getScore(aName);
+      });
+
+      setVoices(enVoices);
+      
+      // Auto-select the best voice if none is selected yet
+      setSelectedVoiceURI(current => {
+        if (!current && enVoices.length > 0) return enVoices[0].voiceURI;
+        return current;
+      });
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
     };
   }, []);
 
@@ -68,6 +114,11 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = rate;
     utterance.lang = 'en-US';
+    
+    if (selectedVoiceURI) {
+      const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (voice) utterance.voice = voice;
+    }
 
     utterance.onstart = () => setReadingState('playing');
     utterance.onpause = () => setReadingState('paused');
@@ -107,6 +158,12 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = newRate;
       utterance.lang = 'en-US';
+      
+      if (selectedVoiceURI) {
+        const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+        if (voice) utterance.voice = voice;
+      }
+      
       utterance.onend = () => {
         utteranceRef.current = null;
         setReadingState('idle');
@@ -123,7 +180,41 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
         setReadingState('playing');
       }, 120);
     }
-  }, [readingState, documentText]);
+  }, [readingState, documentText, selectedVoiceURI, voices]);
+
+  const handleVoiceChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newVoiceURI = e.target.value;
+    setSelectedVoiceURI(newVoiceURI);
+
+    // If currently playing or paused, restart with the new voice
+    if (readingState === 'playing' || readingState === 'paused') {
+      window.speechSynthesis.cancel();
+      const text = documentText?.trim();
+      if (!text) return;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = rate;
+      utterance.lang = 'en-US';
+      
+      const voice = voices.find(v => v.voiceURI === newVoiceURI);
+      if (voice) utterance.voice = voice;
+
+      utterance.onend = () => {
+        utteranceRef.current = null;
+        setReadingState('idle');
+      };
+      utterance.onerror = (e) => {
+        if (e.error === 'interrupted') return;
+        setReadingState('idle');
+      };
+      utteranceRef.current = utterance;
+
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+        setReadingState('playing');
+      }, 120);
+    }
+  }, [readingState, documentText, rate, voices]);
 
   const isActive = readingState === 'playing' || readingState === 'paused';
 
@@ -227,6 +318,28 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
           ))}
         </select>
       </div>
+
+      {voices.length > 0 && (
+        <>
+          <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block" />
+          
+          {/* Voice Selector */}
+          <div className="hidden sm:flex items-center max-w-[140px]">
+            <select
+              value={selectedVoiceURI}
+              onChange={handleVoiceChange}
+              title="Voice Selection"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs font-medium rounded-xl px-2.5 py-2 outline-none focus:ring-2 focus:ring-tacsfon-green focus:border-tacsfon-green hover:bg-gray-100 cursor-pointer transition-colors truncate"
+            >
+              {voices.map(v => (
+                <option key={v.voiceURI} value={v.voiceURI}>
+                  {v.name.replace(/(Microsoft|Google|Apple)\s/gi, '').substring(0, 25)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
     </div>
   );
