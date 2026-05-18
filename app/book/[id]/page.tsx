@@ -79,13 +79,6 @@ export default function BookDetails() {
     if (data) setComments(data);
   }
 
-  const getEmbedUrl = (url: string) => {
-    if (!url) return null;
-    if (url.includes('drive.google.com') && url.includes('/view')) {
-      return url.replace(/\/view.*/, '/preview');
-    }
-    return url;
-  };
 
   const handleListenToBook = async () => {
     if (!book?.pdf_url) return;
@@ -155,9 +148,8 @@ export default function BookDetails() {
     </div>
   );
 
-  const embedUrl = getEmbedUrl(book.pdf_url);
   const isInternetArchive = book.ebook_access === 'public';
-  const isReadable = isInternetArchive || !!embedUrl; 
+  const isReadable = isInternetArchive || !!book.pdf_url; 
   const coverImage = book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`;
   const description = book.description || book.summary || "No description available for this book.";
 
@@ -194,9 +186,9 @@ export default function BookDetails() {
                 {/* Mobile Action Button */}
                 <div className="lg:hidden flex flex-col gap-3">
                     {isReadable ? (
-                        <a href="#reader-view" className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/30">
+                        <Link href={`/read/${book.id}`} className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/30">
                             <BookOpen size={20} /> Read Now
-                        </a>
+                        </Link>
                     ) : (
                          <button onClick={() => handleRequest('physical')} disabled={book.available_copies <= 0} className="w-full bg-white text-gray-900 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg">
                             Borrow Physical
@@ -284,15 +276,9 @@ export default function BookDetails() {
                     {/* DESKTOP ACTIONS */}
                     <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-gray-900/10">
                         {isReadable && (
-                          embedUrl ? (
-                            <a href="#reader-view" className="bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-xl">
-                              <BookOpen size={20} className="text-green-400" /> Read Now
-                            </a>
-                          ) : (
                             <Link href={`/read/${book.id}`} className="bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-xl">
-                              <BookOpen size={20} className="text-green-400" /> Read Digital Book
+                              <BookOpen size={20} className="text-green-400" /> Read Now
                             </Link>
-                          )
                         )}
 
                         {isReadable && book.pdf_url && (
@@ -393,20 +379,6 @@ export default function BookDetails() {
             </div>
         </div>
 
-        {/* --- READER VIEW --- */}
-        {embedUrl && (
-            <div id="reader-view" className="rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden h-[85vh] flex flex-col backdrop-blur-xl bg-white/80 animate-fade-in mb-12 relative z-20">
-                <div className="p-4 border-b border-gray-200/50 bg-white/40 flex justify-between items-center backdrop-blur-md">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <BookOpen size={20} className="text-green-700"/> Reader View
-                    </h3>
-                    <div className="flex gap-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase rounded-md">Secure Viewer</span>
-                    </div>
-                </div>
-                <iframe src={embedUrl} className="w-full h-full bg-white" allow="autoplay"></iframe>
-            </div>
-        )}
 
       </main>
     </div>
