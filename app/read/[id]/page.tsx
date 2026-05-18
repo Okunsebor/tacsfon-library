@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, BookOpen, Loader2, Sun, Moon, Plus, Minus,
-  Menu, X, Headphones, ChevronUp, Library, AlertTriangle
+  Menu, X, Headphones, ChevronUp, Library, AlertTriangle, Volume2
 } from 'lucide-react';
 
 type Theme = 'light' | 'dark';
@@ -46,9 +46,15 @@ export default function BookReader() {
   const [showAudio, setShowAudio] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
 
+  // Paragraph-level audio
+  const [paragraphs, setParagraphs] = useState<string[]>([]);
+  const [speakingParagraph, setSpeakingParagraph] = useState<number | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
   // Refs
   const readingRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const paragraphRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Init theme/font from localStorage
   useEffect(() => {
@@ -89,6 +95,12 @@ export default function BookReader() {
           // Parse into sections by double-newlines
           const parts = text.split(/\n\s*\n/).filter((s: string) => s.trim().length > 20);
           setSections(parts.length > 0 ? parts : [text]);
+          // Build flat paragraph list for click-to-play
+          const allParas: string[] = [];
+          (parts.length > 0 ? parts : [text]).forEach((section: string) => {
+            section.split(/\n/).filter((p: string) => p.trim().length > 5).forEach((p: string) => allParas.push(p.trim()));
+          });
+          setParagraphs(allParas);
         }
       } catch (err: any) {
         if (!cancelled) setExtractError(err.message || 'Failed to extract text');
@@ -162,6 +174,60 @@ export default function BookReader() {
   const scrollToTop = () => {
     readingRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // ── PARAGRAPH CLICK-TO-PLAY ──
+  const stopSpeaking = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    utteranceRef.current = null;
+    setSpeakingParagraph(null);
+  }, []);
+
+  const playParagraph = useCallback((paraIndex: number) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    // Cancel any current playback
+    window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+
+    const text = paragraphs[paraIndex]?.trim();
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1;
+    utterance.lang = 'en-US';
+
+    utterance.onstart = () => setSpeakingParagraph(paraIndex);
+    utterance.onend = () => {
+      // Auto-advance to next paragraph
+      const next = paraIndex + 1;
+      if (next < paragraphs.length) {
+        playParagraph(next);
+      } else {
+        setSpeakingParagraph(null);
+        utteranceRef.current = null;
+      }
+    };
+    utterance.onerror = (e) => {
+      if (e.error === 'interrupted') return;
+      setSpeakingParagraph(null);
+      utteranceRef.current = null;
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [paragraphs]);
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => { window.speechSynthesis?.cancel(); };
+  }, []);
+
+  // Auto-scroll to keep the speaking paragraph visible
+  useEffect(() => {
+    if (speakingParagraph !== null && paragraphRefs.current[speakingParagraph]) {
+      paragraphRefs.current[speakingParagraph]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [speakingParagraph]);
 
   // Theme colors
   const isDark = theme === 'dark';
@@ -414,36 +480,89 @@ export default function BookReader() {
           {/* Error / Fallback */}
           {!extracting && extractError && renderFallback()}
 
-          {/* Extracted text */}
+          {/* Extracted text — Interactive Paragraph Blocks */}
           {!extracting && !extractError && sections.length > 0 && (
             <article className="mx-auto px-6 sm:px-8 lg:px-12 py-10 lg:py-16" style={{ maxWidth: '72ch' }}>
-              {sections.map((section, i) => (
-                <div
-                  key={i}
-                  ref={el => { sectionRefs.current[i] = el; }}
-                  className="mb-8 scroll-mt-20"
-                >
-                  {sections.length > 1 && (
-                    <div className="flex items-center gap-2 mb-4 select-none">
-                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: textMuted }}>
-                        Section {i + 1}
-                      </span>
-                      <div className="flex-1 h-px" style={{ background: borderColor }} />
+              {(() => {
+                let globalParaIdx = 0;
+                return sections.map((section, sectionIdx) => {
+                  const sectionParas = section.split(/\n/).filter((p: string) => p.trim().length > 5);
+                  const rendered = (
+                    <div
+                      key={sectionIdx}
+                      ref={el => { sectionRefs.current[sectionIdx] = el; }}
+                      className="mb-10 scroll-mt-20"
+                    >
+                      {sections.length > 1 && (
+                        <div className="flex items-center gap-2 mb-5 select-none">
+                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: textMuted }}>
+                            Section {sectionIdx + 1}
+                          </span>
+                          <div className="flex-1 h-px" style={{ background: borderColor }} />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        {sectionParas.map((para, pIdx) => {
+                          const thisGlobalIdx = globalParaIdx++;
+                          const isSpeaking = speakingParagraph === thisGlobalIdx;
+                          return (
+                            <div
+                              key={thisGlobalIdx}
+                              ref={el => { paragraphRefs.current[thisGlobalIdx] = el; }}
+                              onClick={() => {
+                                if (isSpeaking) { stopSpeaking(); }
+                                else { playParagraph(thisGlobalIdx); }
+                              }}
+                              className={`group relative py-3 px-4 rounded-xl cursor-pointer transition-all duration-300 border-l-[3px] ${
+                                isSpeaking
+                                  ? 'border-l-green-500'
+                                  : 'border-l-transparent hover:border-l-gray-300'
+                              }`}
+                              style={{
+                                background: isSpeaking
+                                  ? (isDark ? 'rgba(0,104,56,0.1)' : 'rgba(0,104,56,0.04)')
+                                  : 'transparent',
+                                fontSize: `${fontSize}px`,
+                                lineHeight: 1.85,
+                                wordSpacing: '0.02em',
+                                letterSpacing: '0.01em',
+                              }}
+                            >
+                              {/* Hover play icon */}
+                              <span className={`absolute -left-1 top-3 transition-all duration-200 ${
+                                isSpeaking
+                                  ? 'opacity-100 scale-100'
+                                  : 'opacity-0 group-hover:opacity-60 scale-75 group-hover:scale-100'
+                              }`}>
+                                <Volume2 size={14} style={{ color: isSpeaking ? accent : textMuted }} className={isSpeaking ? 'animate-pulse' : ''} />
+                              </span>
+                              <span className={`transition-colors duration-300 ${
+                                isSpeaking ? 'font-medium' : 'group-hover:opacity-90'
+                              }`} style={{ color: isSpeaking ? (isDark ? '#E5E7EB' : '#111827') : textColor }}>
+                                {para.trim()}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
-                  <div
-                    className="whitespace-pre-wrap leading-relaxed transition-all duration-300"
-                    style={{
-                      fontSize: `${fontSize}px`,
-                      lineHeight: 1.85,
-                      wordSpacing: '0.02em',
-                      letterSpacing: '0.01em',
-                    }}
+                  );
+                  return rendered;
+                });
+              })()}
+
+              {/* Playback stop bar */}
+              {speakingParagraph !== null && (
+                <div className="sticky bottom-4 z-10 flex items-center justify-center mt-6">
+                  <button
+                    onClick={stopSpeaking}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
+                    style={{ background: isDark ? '#1E293B' : '#fff', color: accent, border: `1px solid ${borderColor}` }}
                   >
-                    {section}
-                  </div>
+                    <Volume2 size={16} className="animate-pulse" /> Speaking §{speakingParagraph + 1} · Click to Stop
+                  </button>
                 </div>
-              ))}
+              )}
 
               {/* End of book */}
               <div className="text-center py-16 space-y-4 border-t mt-12" style={{ borderColor }}>
