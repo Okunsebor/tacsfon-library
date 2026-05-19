@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={jakarta.variable} suppressHydrationWarning>
-      <body className="font-sans bg-gray-50 text-gray-900 antialiased selection:bg-[#006838] selection:text-white dark:bg-[#0a0a0a] dark:text-gray-100">
+      <body className="font-sans bg-gray-50 text-gray-900 antialiased selection:bg-[#006838] selection:text-white">
         {/* Navbar sits at the top */}
         <Navbar />
         

@@ -18,11 +18,13 @@ const SPEED_OPTIONS = [
   { label: '2×', value: 2 },
 ];
 
-type Theme = 'light' | 'dark';
+type ReadingTheme = 'light' | 'dark' | 'sepia';
 
-function getStoredTheme(): Theme {
+function getStoredTheme(): ReadingTheme {
   if (typeof window === 'undefined') return 'light';
-  return (localStorage.getItem('reader-theme') as Theme) || 'light';
+  const val = localStorage.getItem('reader-theme');
+  if (val === 'light' || val === 'dark' || val === 'sepia') return val;
+  return 'light';
 }
 function getStoredFontSize(): number {
   if (typeof window === 'undefined') return 18;
@@ -47,7 +49,7 @@ export default function BookReader() {
   const [extractError, setExtractError] = useState('');
 
   // Reader settings
-  const [theme, setTheme] = useState<Theme>('light');
+  const [readingTheme, setReadingTheme] = useState<ReadingTheme>('light');
   const [fontSize, setFontSize] = useState(18);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -75,7 +77,7 @@ export default function BookReader() {
 
   // Init theme/font from localStorage
   useEffect(() => {
-    setTheme(getStoredTheme());
+    setReadingTheme(getStoredTheme());
     setFontSize(getStoredFontSize());
   }, []);
 
@@ -195,13 +197,10 @@ export default function BookReader() {
     };
   }, []);
 
-  // Theme toggle
-  const toggleTheme = useCallback(() => {
-    setTheme(prev => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem('reader-theme', next);
-      return next;
-    });
+  // Theme change
+  const changeTheme = useCallback((theme: ReadingTheme) => {
+    setReadingTheme(theme);
+    localStorage.setItem('reader-theme', theme);
   }, []);
 
   // Font size
@@ -218,13 +217,12 @@ export default function BookReader() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
-      if (e.key === 't' || e.key === 'T') toggleTheme();
       if (e.key === '=' || e.key === '+') changeFontSize(1);
       if (e.key === '-') changeFontSize(-1);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [toggleTheme, changeFontSize]);
+  }, [changeFontSize]);
 
   // Scroll to section
   const scrollToSection = (idx: number) => {
@@ -369,14 +367,24 @@ export default function BookReader() {
     }
   }, [speakingParagraph]);
 
-  // Theme colors
-  const isDark = theme === 'dark';
-  const bg = isDark ? '#0F172A' : '#FAF9F6';
-  const bgSidebar = isDark ? '#0B1120' : '#F3F2EE';
-  const textColor = isDark ? '#D1D5DB' : '#2D2D2D';
-  const textMuted = isDark ? '#6B7280' : '#9CA3AF';
+  // Global Light Theme Colors for the Shell
+  const bg = '#ffffff';
+  const bgSidebar = '#f9fafb';
+  const textColor = '#111827';
+  const textMuted = '#6b7280';
   const accent = '#006838';
-  const borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const borderColor = 'rgba(0,0,0,0.1)';
+
+  // Localized Reading Container Colors
+  const getReadingColors = () => {
+    switch (readingTheme) {
+      case 'dark': return { readingBg: '#0f172a', readingText: '#e5e7eb' };
+      case 'sepia': return { readingBg: '#fffbeb', readingText: '#78350f' };
+      case 'light':
+      default: return { readingBg: '#ffffff', readingText: '#000000' };
+    }
+  };
+  const { readingBg, readingText } = getReadingColors();
 
   // ── LOADING STATE ──
   if (loading) {
@@ -462,7 +470,7 @@ export default function BookReader() {
       {/* ── TOP BAR ── */}
       <header
         className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b transition-colors duration-500"
-        style={{ borderColor, background: isDark ? 'rgba(11,17,32,0.95)' : 'rgba(243,242,238,0.95)', backdropFilter: 'blur(12px)' }}
+        style={{ borderColor, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)' }}
       >
         {/* Left */}
         <div className="flex items-center gap-3">
@@ -480,7 +488,7 @@ export default function BookReader() {
           >
             <ArrowLeft size={16} /> <span className="hidden sm:inline">Book Details</span>
           </Link>
-          <span className="hidden md:inline text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: isDark ? 'rgba(0,104,56,0.2)' : 'rgba(0,104,56,0.08)', color: accent }}>
+          <span className="hidden md:inline text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(0,104,56,0.08)', color: accent }}>
             {Math.round(scrollProgress)}% read
           </span>
         </div>
@@ -495,10 +503,6 @@ export default function BookReader() {
           <button onClick={() => changeFontSize(-1)} className="p-2 rounded-lg hover:opacity-70 transition-opacity" title="Decrease font"><Minus size={16} /></button>
           <span className="text-xs font-bold w-8 text-center" style={{ color: textMuted }}>{fontSize}</span>
           <button onClick={() => changeFontSize(1)} className="p-2 rounded-lg hover:opacity-70 transition-opacity" title="Increase font"><Plus size={16} /></button>
-          <div className="w-px h-5 mx-1" style={{ background: borderColor }} />
-          <button onClick={toggleTheme} className="p-2 rounded-lg hover:opacity-70 transition-opacity" title="Toggle theme">
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
         </div>
       </header>
 
@@ -522,7 +526,7 @@ export default function BookReader() {
             <p className="text-sm" style={{ color: textMuted }}>{book.author}</p>
             {book.category && (
               <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                style={{ background: isDark ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.08)', color: accent }}>
+                style={{ background: 'rgba(0,104,56,0.08)', color: accent }}>
                 {book.category}
               </span>
             )}
@@ -546,7 +550,7 @@ export default function BookReader() {
                     }`}
                     style={{
                       color: activeSection === i ? accent : textMuted,
-                      background: activeSection === i ? (isDark ? 'rgba(0,104,56,0.12)' : 'rgba(0,104,56,0.06)') : 'transparent',
+                      background: activeSection === i ? 'rgba(0,104,56,0.06)' : 'transparent',
                     }}
                   >
                     <span className="opacity-40 mr-1.5">§{i + 1}</span>
@@ -556,6 +560,33 @@ export default function BookReader() {
               </nav>
             </div>
           )}
+
+          {/* Reading Theme Control */}
+          <div className="p-4 border-t space-y-3" style={{ borderColor }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: textMuted }}>
+              Reading Theme
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => changeTheme('light')}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'light' ? 'border-green-600 scale-110' : 'border-gray-200'}`}
+                style={{ background: '#ffffff' }}
+                title="Light Mode"
+              />
+              <button
+                onClick={() => changeTheme('sepia')}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'sepia' ? 'border-green-600 scale-110' : 'border-[#e7d4a6]'}`}
+                style={{ background: '#fffbeb' }}
+                title="Sepia Mode"
+              />
+              <button
+                onClick={() => changeTheme('dark')}
+                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'dark' ? 'border-green-600 scale-110' : 'border-gray-700'}`}
+                style={{ background: '#0f172a' }}
+                title="Dark Mode"
+              />
+            </div>
+          </div>
 
           {/* Sidebar Actions */}
           <div className="p-4 mt-auto border-t space-y-2" style={{ borderColor }}>
@@ -568,7 +599,7 @@ export default function BookReader() {
                   setSidebarOpen(false);
                 }}
                 className="w-full flex items-center gap-2 text-sm font-bold py-2.5 px-4 rounded-xl transition-all hover:opacity-80"
-                style={{ background: isDark ? 'rgba(247,148,29,0.12)' : 'rgba(247,148,29,0.08)', color: '#F7941D' }}
+                style={{ background: 'rgba(247,148,29,0.08)', color: '#F7941D' }}
               >
                 {speakingParagraph !== null && !isPaused ? <Pause size={16} /> : <Headphones size={16} />}
                 {speakingParagraph !== null ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Listen to Book'}
@@ -577,7 +608,7 @@ export default function BookReader() {
             <Link
               href="/"
               className="w-full flex items-center gap-2 text-sm font-bold py-2.5 px-4 rounded-xl transition-all hover:opacity-80"
-              style={{ background: isDark ? 'rgba(0,104,56,0.12)' : 'rgba(0,104,56,0.06)', color: accent }}
+              style={{ background: 'rgba(0,104,56,0.06)', color: accent }}
             >
               <Library size={16} /> Back to Library
             </Link>
@@ -593,7 +624,7 @@ export default function BookReader() {
         )}
 
         {/* ── READING COLUMN ── */}
-        <main ref={readingRef} className="flex-1 overflow-y-auto min-h-0 scroll-smooth">
+        <main ref={readingRef} className="flex-1 overflow-y-auto min-h-0 scroll-smooth transition-colors duration-500" style={{ background: readingBg, color: readingText }}>
 
 
 
@@ -660,7 +691,7 @@ export default function BookReader() {
                               }`}
                               style={{
                                 background: isSpeaking
-                                  ? (isDark ? 'rgba(0,104,56,0.1)' : 'rgba(0,104,56,0.04)')
+                                  ? (readingTheme === 'dark' ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.06)')
                                   : 'transparent',
                                 fontSize: `${fontSize}px`,
                                 lineHeight: 1.85,
@@ -678,7 +709,7 @@ export default function BookReader() {
                               </span>
                               <span className={`transition-colors duration-300 ${
                                 isSpeaking ? 'font-medium' : 'group-hover:opacity-90'
-                              }`} style={{ color: isSpeaking ? (isDark ? '#E5E7EB' : '#111827') : textColor }}>
+                              }`} style={{ color: isSpeaking ? (readingTheme === 'dark' ? '#E5E7EB' : '#111827') : readingText }}>
                                 {para.trim()}
                               </span>
                             </div>
@@ -700,7 +731,7 @@ export default function BookReader() {
                   <Link
                     href={`/book/${id}`}
                     className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-80"
-                    style={{ background: isDark ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.08)', color: accent }}
+                    style={{ background: readingTheme === 'dark' ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.08)', color: accent }}
                   >
                     ← Book Details
                   </Link>
@@ -746,12 +777,12 @@ export default function BookReader() {
       {/* ── INTEGRATED MINI PLAYER (fixed bottom) ── */}
       {speakingParagraph !== null && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 border-t shadow-2xl transition-all duration-300"
-          style={{ borderColor, background: isDark ? 'rgba(11,17,32,0.97)' : 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)' }}
+          className="fixed bottom-0 left-0 right-0 z-40 border-t shadow-2xl transition-all duration-300 bg-white/95"
+          style={{ borderColor, backdropFilter: 'blur(16px)' }}
         >
           <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-3">
             {/* Pulsing indicator */}
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative" style={{ background: isDark ? 'rgba(0,104,56,0.2)' : 'rgba(0,104,56,0.1)' }}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative" style={{ background: 'rgba(0,104,56,0.1)' }}>
               <Volume2 size={16} style={{ color: accent }} className="animate-pulse" />
             </div>
             {/* Info */}
@@ -774,7 +805,7 @@ export default function BookReader() {
               <button
                 onClick={skipToNextParagraph}
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: textColor }}
+                style={{ background: 'rgba(0,0,0,0.05)', color: textColor }}
                 title="Next paragraph"
               >
                 <SkipForward size={14} />
@@ -783,7 +814,7 @@ export default function BookReader() {
               <button
                 onClick={stopSpeaking}
                 className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)', color: '#EF4444' }}
+                style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444' }}
                 title="Stop"
               >
                 <Square size={14} fill="currentColor" />
@@ -797,7 +828,7 @@ export default function BookReader() {
                     value={selectedVoiceURI}
                     onChange={(e) => handleVoiceChange(e.target.value)}
                     className="text-xs font-bold rounded-lg px-1.5 py-1 outline-none cursor-pointer border-none truncate w-full"
-                    style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: textColor }}
+                    style={{ background: 'rgba(0,0,0,0.04)', color: textColor }}
                   >
                     {voices.map(v => (
                       <option key={v.voiceURI} value={v.voiceURI}>
@@ -817,7 +848,7 @@ export default function BookReader() {
         <button
           onClick={scrollToTop}
           className={`fixed z-30 w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${speakingParagraph !== null ? 'bottom-20 right-5' : 'bottom-6 right-6'}`}
-          style={{ background: isDark ? '#1E293B' : '#fff', color: accent, border: `1px solid ${borderColor}` }}
+          style={{ background: '#fff', color: accent, border: `1px solid ${borderColor}` }}
           title="Jump to top"
         >
           <ChevronUp size={22} />
