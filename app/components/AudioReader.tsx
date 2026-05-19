@@ -50,7 +50,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       const allVoices = window.speechSynthesis.getVoices();
       if (allVoices.length === 0) return;
 
-      const allowedNames = ['David', 'Mark', 'UK English Female', 'UK English Male', 'US English', 'English United Kingdom', 'English United States', 'English Nigeria'];
+      const allowedNames = ['David', 'Mark', 'UK English Female', 'UK English Male', 'English United Kingdom'];
       const filteredVoices = allVoices.filter(v =>
         allowedNames.some(allowed => v.name.includes(allowed))
       );
