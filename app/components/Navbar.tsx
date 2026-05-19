@@ -1,9 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Brain, Info, Phone, LogIn, Moon, Sun } from 'lucide-react'; 
+import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Brain, Info, Phone, LogIn } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
 import { supabase } from '@/lib/supabaseClient'; // Ensure you have this import for auth check
 
 export default function Navbar() {
@@ -11,10 +10,6 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   // Check auth for "My Dashboard" visibility logic
   useEffect(() => {
@@ -93,15 +88,6 @@ export default function Navbar() {
 
             {/* 3. RIGHT SIDE: THEME & USER */}
             <div className="hidden lg:flex items-center gap-2">
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-all"
-                  title="Toggle Theme"
-                >
-                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-              )}
               <Link 
                 href="/dashboard" 
                 className="p-2 rounded-full text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-tacsfon-green transition-all"
@@ -113,14 +99,6 @@ export default function Navbar() {
 
             {/* 4. MOBILE MENU BTN */}
             <div className="lg:hidden flex items-center gap-2">
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-all"
-                >
-                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-              )}
               <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-gray-800 dark:text-gray-200 focus:outline-none">
                 {isOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
