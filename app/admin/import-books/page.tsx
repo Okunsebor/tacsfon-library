@@ -191,9 +191,9 @@ export default function ImportBooks() {
     }
     setSaving(true);
     try {
-        // Upload the PDF
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        // Sanitize the original file name: lowercase, replace spaces/special characters with hyphens
+        const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]/g, '-').replace(/-+/g, '-');
+        const fileName = `${Date.now()}-${safeName}`;
         
         const { error: uploadError } = await supabase.storage
             .from('books')
