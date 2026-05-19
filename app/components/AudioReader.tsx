@@ -226,8 +226,8 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
 
   if (!supported) {
     return (
-      <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3 px-5 py-3 bg-rose-50 border border-rose-100 rounded-full text-rose-500 text-sm font-medium shadow-lg">
-        <Volume2 size={18} /> Your browser does not support audio reading.
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg sm:bottom-6 sm:left-6 sm:translate-x-0 sm:w-auto z-50 flex items-center justify-center gap-3 px-5 py-3 bg-rose-50 border border-rose-100 rounded-full text-rose-500 text-xs sm:text-sm font-medium shadow-lg">
+        <Volume2 size={16} className="sm:w-[18px] sm:h-[18px]" /> Browser not supported for audio.
       </div>
     );
   }
@@ -236,7 +236,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="fixed bottom-6 left-6 z-50 p-4 bg-white border border-gray-200 rounded-full shadow-lg opacity-50 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center group"
+        className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 p-3 sm:p-4 bg-white border border-gray-200 rounded-full shadow-lg opacity-80 sm:opacity-50 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center group"
         title="Open Audio Reader"
       >
         {readingState === 'playing' ? (
@@ -251,34 +251,34 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   }
 
   return (
-    <div className={`fixed bottom-6 left-6 z-50 inline-flex items-center gap-3 p-2 pr-4 rounded-full shadow-xl border transition-all duration-300 ${
+    <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-1rem)] max-w-[400px] sm:w-auto sm:left-6 sm:translate-x-0 sm:bottom-6 z-50 flex items-center justify-between sm:justify-start gap-1 sm:gap-3 p-1.5 sm:p-2 pr-2 sm:pr-4 rounded-full shadow-2xl border transition-all duration-300 ${
       readingState === 'playing'
-        ? 'bg-gradient-to-r from-tacsfon-green/10 via-white to-white border-tacsfon-green/30 shadow-tacsfon-green/10'
+        ? 'bg-gradient-to-r from-tacsfon-green/10 via-white to-white border-tacsfon-green/30 shadow-tacsfon-green/20'
         : readingState === 'paused'
         ? 'bg-orange-50/60 border-tacsfon-orange/30'
         : 'bg-white border-gray-100'
     }`}>
 
       {/* Animated Icon / Indicator */}
-      <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${
+      <div className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
         readingState === 'playing' ? 'bg-tacsfon-green' : readingState === 'paused' ? 'bg-tacsfon-orange' : 'bg-gray-100'
       }`}>
         {readingState === 'playing' ? (
-          <Mic size={20} className="text-white animate-pulse" />
+          <Mic size={16} className="text-white animate-pulse sm:w-[20px] sm:h-[20px]" />
         ) : readingState === 'paused' ? (
-          <Mic size={20} className="text-white" />
+          <Mic size={16} className="text-white sm:w-[20px] sm:h-[20px]" />
         ) : (
-          <Volume2 size={20} className="text-gray-400" />
+          <Volume2 size={16} className="text-gray-400 sm:w-[20px] sm:h-[20px]" />
         )}
 
         {/* Pulsing ring when playing */}
         {readingState === 'playing' && (
-          <span className="absolute inset-0 rounded-xl ring-2 ring-tacsfon-green/40 animate-ping pointer-events-none" />
+          <span className="absolute inset-0 rounded-full ring-2 ring-tacsfon-green/40 animate-ping pointer-events-none" />
         )}
       </div>
 
       {/* Status Label */}
-      <div className="flex flex-col leading-tight select-none min-w-[64px]">
+      <div className="hidden sm:flex flex-col leading-tight select-none min-w-[64px]">
         <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Audio</span>
         <span className={`text-xs font-extrabold capitalize ${
           readingState === 'playing' ? 'text-tacsfon-green' : readingState === 'paused' ? 'text-tacsfon-orange' : 'text-gray-500'
@@ -287,27 +287,27 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
         </span>
       </div>
 
-      <div className="h-8 w-px bg-gray-200 mx-1" />
+      <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block" />
 
       {/* Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Play / Pause toggle */}
         {readingState === 'playing' ? (
           <button
             onClick={handlePause}
             title="Pause"
-            className="p-2.5 bg-tacsfon-orange/10 text-tacsfon-orange rounded-xl hover:bg-tacsfon-orange/20 active:scale-95 transition-all"
+            className="p-2 sm:p-2.5 bg-tacsfon-orange/10 text-tacsfon-orange rounded-full hover:bg-tacsfon-orange/20 active:scale-95 transition-all"
           >
-            <Pause size={18} fill="currentColor" />
+            <Pause size={16} fill="currentColor" className="sm:w-[18px] sm:h-[18px]" />
           </button>
         ) : (
           <button
             onClick={handlePlay}
             disabled={!documentText?.trim()}
             title={readingState === 'paused' ? 'Resume' : 'Play'}
-            className="p-2.5 bg-tacsfon-green text-white rounded-xl hover:bg-green-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-tacsfon-green/20"
+            className="p-2 sm:p-2.5 bg-tacsfon-green text-white rounded-full hover:bg-green-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md hover:shadow-tacsfon-green/20"
           >
-            <Play size={18} fill="currentColor" />
+            <Play size={16} fill="currentColor" className="sm:w-[18px] sm:h-[18px]" />
           </button>
         )}
 
@@ -316,26 +316,26 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
           onClick={handleStop}
           disabled={!isActive}
           title="Stop"
-          className={`p-2.5 rounded-xl active:scale-95 transition-all ${
+          className={`p-2 sm:p-2.5 rounded-full active:scale-95 transition-all ${
             isActive
               ? 'bg-rose-50 text-rose-500 hover:bg-rose-100 shadow-sm'
               : 'bg-gray-100 text-gray-300 cursor-not-allowed'
           }`}
         >
-          <Square size={18} fill="currentColor" />
+          <Square size={16} fill="currentColor" className="sm:w-[18px] sm:h-[18px]" />
         </button>
       </div>
 
-      <div className="h-8 w-px bg-gray-200 mx-1" />
+      <div className="h-6 w-px bg-gray-200 mx-0.5 sm:mx-1" />
 
       {/* Speed Selector */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <Gauge size={14} className="text-gray-400 hidden sm:block" />
         <select
           value={rate}
           onChange={handleRateChange}
           title="Playback speed"
-          className="bg-gray-50 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl px-2.5 py-2 outline-none focus:ring-2 focus:ring-tacsfon-green focus:border-tacsfon-green hover:bg-gray-100 cursor-pointer transition-colors"
+          className="bg-gray-50 border border-gray-200 text-gray-700 text-[10px] sm:text-xs font-bold rounded-xl px-1.5 py-1.5 sm:px-2.5 sm:py-2 outline-none focus:ring-2 focus:ring-tacsfon-green focus:border-tacsfon-green hover:bg-gray-100 cursor-pointer transition-colors"
         >
           {SPEED_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -345,15 +345,15 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
 
       {voices.length > 0 && (
         <>
-          <div className="h-8 w-px bg-gray-200 mx-1 hidden sm:block" />
+          <div className="h-6 w-px bg-gray-200 mx-0.5 sm:mx-1" />
           
           {/* Voice Selector */}
-          <div className="hidden sm:flex items-center max-w-[140px]">
+          <div className="flex items-center max-w-[80px] sm:max-w-[140px]">
             <select
               value={selectedVoiceURI}
               onChange={handleVoiceChange}
               title="Voice Selection"
-              className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-xs font-medium rounded-xl px-2.5 py-2 outline-none focus:ring-2 focus:ring-tacsfon-green focus:border-tacsfon-green hover:bg-gray-100 cursor-pointer transition-colors truncate"
+              className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-[10px] sm:text-xs font-medium rounded-xl px-1.5 py-1.5 sm:px-2.5 sm:py-2 outline-none focus:ring-2 focus:ring-tacsfon-green focus:border-tacsfon-green hover:bg-gray-100 cursor-pointer transition-colors truncate"
             >
               {voices.map(v => (
                 <option key={v.voiceURI} value={v.voiceURI}>
@@ -365,15 +365,15 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
         </>
       )}
 
-      <div className="h-8 w-px bg-gray-200 mx-1" />
+      <div className="h-6 w-px bg-gray-200 mx-0.5 sm:mx-1" />
       
       {/* Minimize Button */}
       <button
         onClick={() => setIsExpanded(false)}
-        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+        className="p-1 sm:p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors shrink-0"
         title="Minimize"
       >
-        <X size={18} />
+        <X size={16} className="sm:w-[18px] sm:h-[18px]" />
       </button>
     </div>
   );
