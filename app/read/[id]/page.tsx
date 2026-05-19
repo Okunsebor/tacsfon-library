@@ -66,6 +66,7 @@ export default function BookReader() {
   // Voice Selection
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>('');
+  const selectedVoiceURIRef = useRef<string>('');
 
   // Refs
   const readingRef = useRef<HTMLDivElement>(null);
@@ -178,7 +179,10 @@ export default function BookReader() {
       setVoices(enVoices);
       
       setSelectedVoiceURI(current => {
-        if (!current && enVoices.length > 0) return enVoices[0].voiceURI;
+        if (!current && enVoices.length > 0) {
+          selectedVoiceURIRef.current = enVoices[0].voiceURI;
+          return enVoices[0].voiceURI;
+        }
         return current;
       });
     };
@@ -289,8 +293,8 @@ export default function BookReader() {
     utterance.rate = speechRateRef.current;
     utterance.lang = 'en-US';
 
-    if (selectedVoiceURI) {
-      const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+    if (selectedVoiceURIRef.current) {
+      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
       if (voice) utterance.voice = voice;
     }
 
@@ -346,6 +350,7 @@ export default function BookReader() {
 
   const handleVoiceChange = useCallback((newVoiceURI: string) => {
     setSelectedVoiceURI(newVoiceURI);
+    selectedVoiceURIRef.current = newVoiceURI;
     // If currently playing, restart current paragraph from the CURRENT SENTENCE with new voice
     if (speakingParagraph !== null && !isPaused) {
       playParagraph(speakingParagraph, currentSentenceIdxRef.current);

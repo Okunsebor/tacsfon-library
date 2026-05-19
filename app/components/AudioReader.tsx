@@ -23,6 +23,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const [supported, setSupported] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>('');
+  const selectedVoiceURIRef = useRef<string>('');
   
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -70,7 +71,10 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       
       // Auto-select the best voice if none is selected yet
       setSelectedVoiceURI(current => {
-        if (!current && enVoices.length > 0) return enVoices[0].voiceURI;
+        if (!current && enVoices.length > 0) {
+          selectedVoiceURIRef.current = enVoices[0].voiceURI;
+          return enVoices[0].voiceURI;
+        }
         return current;
       });
     };
@@ -115,8 +119,8 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
     utterance.rate = rate;
     utterance.lang = 'en-US';
     
-    if (selectedVoiceURI) {
-      const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+    if (selectedVoiceURIRef.current) {
+      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
       if (voice) utterance.voice = voice;
     }
 
@@ -159,8 +163,8 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       utterance.rate = newRate;
       utterance.lang = 'en-US';
       
-      if (selectedVoiceURI) {
-        const voice = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (selectedVoiceURIRef.current) {
+        const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
         if (voice) utterance.voice = voice;
       }
       
@@ -185,6 +189,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const handleVoiceChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newVoiceURI = e.target.value;
     setSelectedVoiceURI(newVoiceURI);
+    selectedVoiceURIRef.current = newVoiceURI;
 
     // If currently playing or paused, restart with the new voice
     if (readingState === 'playing' || readingState === 'paused') {
@@ -196,7 +201,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       utterance.rate = rate;
       utterance.lang = 'en-US';
       
-      const voice = voices.find(v => v.voiceURI === newVoiceURI);
+      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === newVoiceURI);
       if (voice) utterance.voice = voice;
 
       utterance.onend = () => {
