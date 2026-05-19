@@ -162,7 +162,15 @@ export default function BookReader() {
       const allVoices = window.speechSynthesis.getVoices();
       if (allVoices.length === 0) return;
 
-      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+      const allowedNames = ['UK English Female', 'UK English Male', 'US English', 'David', 'Mark'];
+      const filteredVoices = allVoices.filter(v =>
+        allowedNames.some(allowed => v.name.includes(allowed))
+      );
+
+      // fallback to English if no allowed voices found
+      const enVoices = filteredVoices.length > 0 
+        ? filteredVoices 
+        : allVoices.filter(v => v.lang.startsWith('en'));
 
       enVoices.sort((a, b) => {
         const aName = a.name.toLowerCase();
@@ -342,7 +350,10 @@ export default function BookReader() {
     // If currently playing, restart current paragraph from the CURRENT SENTENCE with new speed
     if (speakingParagraph !== null && !isPaused) {
       speechRateRef.current = newRate;
-      playParagraph(speakingParagraph, currentSentenceIdxRef.current);
+      window.speechSynthesis.cancel();
+      setTimeout(() => {
+        playParagraph(speakingParagraph, currentSentenceIdxRef.current);
+      }, 100);
     }
   }, [speakingParagraph, isPaused, playParagraph]);
 
@@ -351,7 +362,10 @@ export default function BookReader() {
     selectedVoiceURIRef.current = newVoiceURI;
     // If currently playing, restart current paragraph from the CURRENT SENTENCE with new voice
     if (speakingParagraph !== null && !isPaused) {
-      playParagraph(speakingParagraph, currentSentenceIdxRef.current);
+      window.speechSynthesis.cancel();
+      setTimeout(() => {
+        playParagraph(speakingParagraph, currentSentenceIdxRef.current);
+      }, 100);
     }
   }, [speakingParagraph, isPaused, playParagraph]);
 

@@ -50,8 +50,15 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
       const allVoices = window.speechSynthesis.getVoices();
       if (allVoices.length === 0) return;
 
-      // Filter to English only
-      const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+      const allowedNames = ['UK English Female', 'UK English Male', 'US English', 'David', 'Mark'];
+      const filteredVoices = allVoices.filter(v =>
+        allowedNames.some(allowed => v.name.includes(allowed))
+      );
+
+      // fallback to English if no allowed voices found
+      const enVoices = filteredVoices.length > 0 
+        ? filteredVoices 
+        : allVoices.filter(v => v.lang.startsWith('en'));
 
       // Sort voices by hierarchy (Natural > Google > Apple > Default)
       enVoices.sort((a, b) => {
