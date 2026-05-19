@@ -46,7 +46,7 @@ export default function ImportBooks() {
   const [loading, setLoading] = useState(false);
   const [draftLoading, setDraftLoading] = useState(false);
   const [selectedBook, setSelectedBook] = useState<any>(null);
-  const [downloadLink, setDownloadLink] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -102,7 +102,7 @@ export default function ImportBooks() {
 
     setDraftLoading(true);
     setSelectedBook(null);
-    setDownloadLink('');
+    setFile(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
@@ -184,12 +184,26 @@ export default function ImportBooks() {
   
   // --- 3. SAVE TO SUPABASE (SCHEMA MATCHED) ---
   const handleSave = async () => {
-    if (!downloadLink) {
-        alert("Please paste a PDF/Drive link first.");
+    if (!file) {
+        alert("Please attach a PDF file first.");
         return;
     }
     setSaving(true);
     try {
+        // Upload the PDF
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+            .from('books')
+            .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('books')
+            .getPublicUrl(fileName);
+
         const { error } = await supabase.from('books').insert([{
             // 1. Text Fields
             title: selectedBook.title,
@@ -199,7 +213,7 @@ export default function ImportBooks() {
             
             // 2. URLs (The Critical Fixes)
             cover_url: selectedBook.cover_url, // Matches 'cover_url' column
-            pdf_url: downloadLink,             // Matches 'pdf_url' column
+            pdf_url: publicUrl,                // Matches 'pdf_url' column
             total_copies: 1,
             available_copies: 1
         }]);
@@ -212,6 +226,7 @@ export default function ImportBooks() {
             setMessage('');
             setQuery('');
             setResults([]);
+            setFile(null);
         }, 2000);
     } catch (error: any) {
         alert(`Database Error: ${error.message}`);
@@ -255,18 +270,19 @@ export default function ImportBooks() {
             </div>
         )}
 
-        {/* DRAFT BOARD */}
+        {/* DRAFT BOARD MODAL */}
         {selectedBook && !draftLoading && (
-            <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-gray-100 animate-in fade-in slide-in-from-bottom-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-2xl border border-gray-100 max-w-4xl w-full max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95">
                 <div className="flex justify-between items-start mb-6">
-                    <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest">Draft Board</h2>
-                    <button onClick={() => setSelectedBook(null)} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full"><X size={24} /></button>
+                    <h2 className="text-xl font-bold text-gray-400 uppercase tracking-widest">Attach PDF & Save</h2>
+                    <button onClick={() => setSelectedBook(null)} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-colors"><X size={24} /></button>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-8">
                     <div className="w-full md:w-1/3 flex-shrink-0">
                         <div className="aspect-[2/3] relative rounded-xl overflow-hidden shadow-2xl border border-gray-100 bg-gray-100">
-                             <Image src={selectedBook.cover_url} alt={selectedBook.title} fill className="object-cover" />
+                             <Image src={selectedBook.cover_url} alt={selectedBook.title} fill className="object-cover" unoptimized />
                         </div>
                     </div>
 
@@ -289,28 +305,32 @@ export default function ImportBooks() {
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                             <h4 className="text-xs font-bold text-gray-400 uppercase mb-2">Summary</h4>
                             {/* RENDER HTML SAFELY */}
-                            <div className="text-sm text-gray-600 leading-relaxed max-h-40 overflow-y-auto pr-2" dangerouslySetInnerHTML={{ __html: selectedBook.summary }} />
+                            <div className="text-sm text-gray-600 leading-relaxed max-h-32 overflow-y-auto pr-2" dangerouslySetInnerHTML={{ __html: selectedBook.summary }} />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-900 uppercase mb-2 flex items-center gap-2"><Download size={14} /> Paste PDF/Drive Link</label>
+                            <label className="block text-xs font-bold text-gray-900 uppercase mb-2 flex items-center gap-2"><Download size={14} /> Attach PDF File</label>
                             <input 
-                                type="url" 
-                                placeholder="e.g. https://drive.google.com..." 
-                                className="w-full p-4 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-tacsfon-green font-medium"
-                                value={downloadLink}
-                                onChange={(e) => setDownloadLink(e.target.value)}
+                                type="file" 
+                                accept="application/pdf"
+                                className="w-full p-4 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-tacsfon-green font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-tacsfon-green/10 file:text-tacsfon-green hover:file:bg-tacsfon-green/20 cursor-pointer"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    setFile(e.target.files[0]);
+                                  }
+                                }}
                             />
                         </div>
 
                         <div className="pt-4 flex gap-4">
-                            <button onClick={handleSave} disabled={saving} className="flex-1 bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-70">
-                                {saving ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Save to {selectedBook.category}</>}
+                            <button onClick={handleSave} disabled={saving || !file} className="flex-1 bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                                {saving ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Upload & Save to Library</>}
                             </button>
                         </div>
                         {message && <div className="p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-2 font-bold animate-in fade-in"><BookOpen size={20} /> {message}</div>}
                     </div>
                 </div>
+              </div>
             </div>
         )}
 
