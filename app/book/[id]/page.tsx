@@ -8,7 +8,6 @@ import Navbar from '@/app/components/Navbar';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { extractTextFromPDF } from '@/lib/pdfUtils';
-import AudioReader from '@/app/components/AudioReader';
 
 
 export default function BookDetails() {
@@ -29,10 +28,7 @@ export default function BookDetails() {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // --- AUDIO READER STATES ---
-  const [extractedText, setExtractedText] = useState<string>('');
-  const [isExtractingText, setIsExtractingText] = useState(false);
-  const [extractError, setExtractError] = useState<string | null>(null);
+  // --- AUDIO READER STATES (REMOVED) ---
 
   useEffect(() => {
     async function init() {
@@ -80,22 +76,9 @@ export default function BookDetails() {
   }
 
 
-  const handleListenToBook = async () => {
+  const handleListenToBook = () => {
     if (!book?.pdf_url) return;
-    
-    setIsExtractingText(true);
-    setExtractError(null);
-    setExtractedText('');
-    
-    try {
-      const { text } = await extractTextFromPDF(book.pdf_url);
-      setExtractedText(text);
-    } catch (error: any) {
-      console.error("Failed to extract text:", error);
-      setExtractError("Could not extract text for this book. It might be protected or unavailable.");
-    } finally {
-      setIsExtractingText(false);
-    }
+    router.push(`/read/${id}?autoplay=true`);
   };
 
   const handleRequest = async (type: 'physical' | 'digital') => {
@@ -197,11 +180,10 @@ export default function BookDetails() {
                     {isReadable && book.pdf_url && (
                         <button 
                             onClick={handleListenToBook}
-                            disabled={isExtractingText}
-                            className="w-full bg-white border-2 border-gray-900 text-gray-900 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                            className="w-full bg-white border-2 border-gray-900 text-gray-900 font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm"
                         >
                             <Headphones size={20} /> 
-                            {isExtractingText ? 'Loading Audio...' : 'Listen to Book'}
+                            Listen to Book
                         </button>
                     )}
                 </div>
@@ -228,23 +210,7 @@ export default function BookDetails() {
                     </div>
 
                     <div className="mb-8">
-                        {/* Audio Reader UI */}
-                        {isExtractingText && (
-                            <div className="mb-6 p-4 bg-gray-100 rounded-xl flex items-center gap-3 animate-pulse">
-                                <Headphones className="text-gray-400" />
-                                <span className="text-gray-600 font-bold">Extracting book text...</span>
-                            </div>
-                        )}
-                        {extractError && (
-                            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100">
-                                {extractError}
-                            </div>
-                        )}
-                        {extractedText && (
-                            <div className="mb-6">
-                                <AudioReader documentText={extractedText} />
-                            </div>
-                        )}
+                        {/* Audio Reader UI Removed (Now handled on Dedicated Reader Page) */}
 
                         <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <BookOpen size={18} className="text-green-700"/> Synopsis
@@ -284,11 +250,10 @@ export default function BookDetails() {
                         {isReadable && book.pdf_url && (
                           <button 
                             onClick={handleListenToBook}
-                            disabled={isExtractingText}
-                            className="bg-white border-2 border-gray-200 text-gray-900 hover:bg-gray-50 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                            className="bg-white border-2 border-gray-200 text-gray-900 hover:bg-gray-50 font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm"
                           >
                             <Headphones size={20} /> 
-                            {isExtractingText ? 'Loading Audio...' : 'Listen to Book'}
+                            Listen to Book
                           </button>
                         )}
 

@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { extractTextFromPDF } from '@/lib/pdfUtils';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, BookOpen, Loader2, Sun, Moon, Plus, Minus,
@@ -33,9 +33,42 @@ function getStoredFontSize(): number {
 
 const FONT_SIZES = [14, 16, 18, 20, 22];
 
+function chunkText(text: string, maxLen: number = 150): string[] {
+  const chunks: string[] = [];
+  const regex = /[^,.!?]+[,.!?]+(?:\s+|$)|[^,.!?]+$/g;
+  const matches = text.match(regex);
+  
+  if (!matches) {
+    let str = text.trim();
+    while (str.length > maxLen) {
+      let spaceIdx = str.lastIndexOf(' ', maxLen);
+      if (spaceIdx === -1) spaceIdx = maxLen;
+      chunks.push(str.substring(0, spaceIdx).trim());
+      str = str.substring(spaceIdx).trim();
+    }
+    if (str) chunks.push(str);
+    return chunks;
+  }
+
+  matches.forEach(match => {
+    let str = match.trim();
+    while (str.length > maxLen) {
+      let spaceIdx = str.lastIndexOf(' ', maxLen);
+      if (spaceIdx === -1) spaceIdx = maxLen;
+      chunks.push(str.substring(0, spaceIdx).trim());
+      str = str.substring(spaceIdx).trim();
+    }
+    if (str) chunks.push(str);
+  });
+
+  return chunks;
+}
+
 export default function BookReader() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [hasAutoplayed, setHasAutoplayed] = useState(false);
 
   // Book data
   const [book, setBook] = useState<any>(null);
@@ -167,10 +200,11 @@ export default function BookReader() {
         allowedNames.some(allowed => v.name.includes(allowed))
       );
 
-      // fallback to English if no allowed voices found
+      // fallback to en-GB if premium names not found, else general en
+      const gbVoices = allVoices.filter(v => v.lang === 'en-GB' || v.lang.includes('en-GB'));
       const enVoices = filteredVoices.length > 0 
         ? filteredVoices 
-        : allVoices.filter(v => v.lang.startsWith('en'));
+        : (gbVoices.length > 0 ? gbVoices : allVoices.filter(v => v.lang.startsWith('en')));
 
       enVoices.sort((a, b) => {
         const aName = a.name.toLowerCase();
@@ -268,9 +302,8 @@ export default function BookReader() {
     if (!text) return;
 
     if (sentenceIdx === 0) {
-      // Regex sentence boundary detection: chunks by punctuation (.!?) followed by space or end of string.
-      const chunks = text.match(/[^\.!\?]+[\.!\?]+(?:\s+|$)|[^\.!\?]+$/g) || [text];
-      sentenceQueueRef.current = chunks.map(s => s.trim()).filter(Boolean);
+      // Split by punctuation and ensure max length 150
+      sentenceQueueRef.current = chunkText(text, 150).filter(Boolean);
       currentSentenceIdxRef.current = 0;
     }
 
@@ -368,6 +401,18 @@ export default function BookReader() {
       }, 100);
     }
   }, [speakingParagraph, isPaused, playParagraph]);
+
+  // Autoplay trigger
+  useEffect(() => {
+    const autoplay = searchParams.get('autoplay') === 'true';
+    if (autoplay && !extracting && paragraphs.length > 0 && !hasAutoplayed) {
+      setHasAutoplayed(true);
+      setTimeout(() => {
+        setSidebarOpen(true);
+        playParagraph(0);
+      }, 500);
+    }
+  }, [searchParams, extracting, paragraphs.length, hasAutoplayed, playParagraph]);
 
   // Cleanup speech on unmount
   useEffect(() => {

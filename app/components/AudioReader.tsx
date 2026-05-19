@@ -17,6 +17,37 @@ const SPEED_OPTIONS = [
 
 type ReadingState = 'idle' | 'playing' | 'paused';
 
+function chunkText(text: string, maxLen: number = 150): string[] {
+  const chunks: string[] = [];
+  const regex = /[^,.!?]+[,.!?]+(?:\s+|$)|[^,.!?]+$/g;
+  const matches = text.match(regex);
+  
+  if (!matches) {
+    let str = text.trim();
+    while (str.length > maxLen) {
+      let spaceIdx = str.lastIndexOf(' ', maxLen);
+      if (spaceIdx === -1) spaceIdx = maxLen;
+      chunks.push(str.substring(0, spaceIdx).trim());
+      str = str.substring(spaceIdx).trim();
+    }
+    if (str) chunks.push(str);
+    return chunks;
+  }
+
+  matches.forEach(match => {
+    let str = match.trim();
+    while (str.length > maxLen) {
+      let spaceIdx = str.lastIndexOf(' ', maxLen);
+      if (spaceIdx === -1) spaceIdx = maxLen;
+      chunks.push(str.substring(0, spaceIdx).trim());
+      str = str.substring(spaceIdx).trim();
+    }
+    if (str) chunks.push(str);
+  });
+
+  return chunks;
+}
+
 export default function AudioReader({ documentText }: AudioReaderProps) {
   const [readingState, setReadingState] = useState<ReadingState>('idle');
   const [rate, setRate] = useState(1);
@@ -27,6 +58,13 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const selectedVoiceURIRef = useRef<string>('');
   
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const chunksRef = useRef<string[]>([]);
+  const currentChunkIdxRef = useRef<number>(0);
+  const rateRef = useRef(1);
+
+  useEffect(() => {
+    rateRef.current = rate;
+  }, [rate]);
 
   // Check for browser support on mount
   useEffect(() => {
@@ -55,10 +93,11 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
         allowedNames.some(allowed => v.name.includes(allowed))
       );
 
-      // fallback to English if no allowed voices found
+      // fallback to en-GB if no exact premium names found, else general en
+      const gbVoices = allVoices.filter(v => v.lang === 'en-GB' || v.lang.includes('en-GB'));
       const enVoices = filteredVoices.length > 0 
         ? filteredVoices 
-        : allVoices.filter(v => v.lang.startsWith('en'));
+        : (gbVoices.length > 0 ? gbVoices : allVoices.filter(v => v.lang.startsWith('en')));
 
       // Sort voices by hierarchy (Natural > Google > Apple > Default)
       enVoices.sort((a, b) => {
@@ -104,7 +143,49 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const handleStop = useCallback(() => {
     window.speechSynthesis?.cancel();
     utteranceRef.current = null;
+    chunksRef.current = [];
+    currentChunkIdxRef.current = 0;
     setReadingState('idle');
+  }, []);
+
+  const playNextChunk = useCallback((chunkIdx: number = 0) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    
+    if (chunkIdx >= chunksRef.current.length) {
+      utteranceRef.current = null;
+      setReadingState('idle');
+      return;
+    }
+
+    const text = chunksRef.current[chunkIdx];
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = rateRef.current;
+    utterance.lang = 'en-US';
+    
+    if (selectedVoiceURIRef.current) {
+      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
+      if (voice) utterance.voice = voice;
+    }
+
+    utterance.onstart = () => {
+      setReadingState('playing');
+      currentChunkIdxRef.current = chunkIdx;
+    };
+    utterance.onpause = () => setReadingState('paused');
+    utterance.onresume = () => setReadingState('playing');
+    
+    utterance.onend = () => {
+      setTimeout(() => playNextChunk(chunkIdx + 1), 50);
+    };
+    
+    utterance.onerror = (e) => {
+      if (e.error === 'interrupted') return;
+      console.error('SpeechSynthesis error:', e.error);
+      setReadingState('idle');
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
   }, []);
 
   const handlePlay = useCallback(() => {
@@ -123,33 +204,9 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
     const text = documentText?.trim();
     if (!text) return;
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = rate;
-    utterance.lang = 'en-US';
-    
-    if (selectedVoiceURIRef.current) {
-      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
-      if (voice) utterance.voice = voice;
-    }
-
-    utterance.onstart = () => setReadingState('playing');
-    utterance.onpause = () => setReadingState('paused');
-    utterance.onresume = () => setReadingState('playing');
-    utterance.onend = () => {
-      utteranceRef.current = null;
-      setReadingState('idle');
-    };
-    utterance.onerror = (e) => {
-      // 'interrupted' fires on cancel(), which is intentional — suppress it
-      if (e.error === 'interrupted') return;
-      console.error('SpeechSynthesis error:', e.error);
-      utteranceRef.current = null;
-      setReadingState('idle');
-    };
-
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, [supported, readingState, documentText, rate]);
+    chunksRef.current = chunkText(text, 150);
+    playNextChunk(0);
+  }, [supported, readingState, documentText, playNextChunk]);
 
   const handlePause = useCallback(() => {
     if (readingState !== 'playing') return;
@@ -160,39 +217,16 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const handleRateChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRate = parseFloat(e.target.value);
     setRate(newRate);
+    rateRef.current = newRate;
 
     // If currently active, restart with the new rate
     if (readingState === 'playing' || readingState === 'paused') {
       window.speechSynthesis.cancel();
-      const text = documentText?.trim();
-      if (!text) return;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = newRate;
-      utterance.lang = 'en-US';
-      
-      if (selectedVoiceURIRef.current) {
-        const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
-        if (voice) utterance.voice = voice;
-      }
-      
-      utterance.onend = () => {
-        utteranceRef.current = null;
-        setReadingState('idle');
-      };
-      utterance.onerror = (e) => {
-        if (e.error === 'interrupted') return;
-        setReadingState('idle');
-      };
-      utteranceRef.current = utterance;
-
-      // Small delay for cancellation to propagate
       setTimeout(() => {
-        window.speechSynthesis.speak(utterance);
-        setReadingState('playing');
-      }, 120);
+        playNextChunk(currentChunkIdxRef.current);
+      }, 100);
     }
-  }, [readingState, documentText, selectedVoiceURI, voices]);
+  }, [readingState, playNextChunk]);
 
   const handleVoiceChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const newVoiceURI = e.target.value;
@@ -202,32 +236,11 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
     // If currently playing or paused, restart with the new voice
     if (readingState === 'playing' || readingState === 'paused') {
       window.speechSynthesis.cancel();
-      const text = documentText?.trim();
-      if (!text) return;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = rate;
-      utterance.lang = 'en-US';
-      
-      const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === newVoiceURI);
-      if (voice) utterance.voice = voice;
-
-      utterance.onend = () => {
-        utteranceRef.current = null;
-        setReadingState('idle');
-      };
-      utterance.onerror = (e) => {
-        if (e.error === 'interrupted') return;
-        setReadingState('idle');
-      };
-      utteranceRef.current = utterance;
-
       setTimeout(() => {
-        window.speechSynthesis.speak(utterance);
-        setReadingState('playing');
-      }, 120);
+        playNextChunk(currentChunkIdxRef.current);
+      }, 100);
     }
-  }, [readingState, documentText, rate, voices]);
+  }, [readingState, playNextChunk]);
 
   const isActive = readingState === 'playing' || readingState === 'paused';
 
