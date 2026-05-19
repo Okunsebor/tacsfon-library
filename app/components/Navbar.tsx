@@ -43,7 +43,7 @@ export default function Navbar() {
   return (
     <>
       {/* ======================= PC / DESKTOP VIEW ======================= */}
-      <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-md shadow-sm border-gray-100 dark:border-gray-800' : 'bg-white dark:bg-[#0a0a0a] border-transparent'} py-1 border-b`}>
+      <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-gray-100' : 'bg-white border-transparent'} py-1 border-b`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="flex justify-between items-center h-14 md:h-16"> 
@@ -70,14 +70,14 @@ export default function Navbar() {
                       Quick Access <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300"/>
                   </button>
                   <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-64 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2">
-                      <div className="bg-white dark:bg-[#111] rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden p-2 ring-1 ring-black/5">
-                          <Link href="/student-login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                              <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 text-tacsfon-green flex items-center justify-center"><User size={16} /></div>
-                              <div><h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Student Portal</h4></div>
+                      <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden p-2 ring-1 ring-black/5">
+                          <Link href="/student-login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors">
+                              <div className="w-8 h-8 rounded-full bg-green-100 text-tacsfon-green flex items-center justify-center"><User size={16} /></div>
+                              <div><h4 className="text-sm font-bold text-gray-800">Student Portal</h4></div>
                           </Link>
-                          <Link href="/admin/login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors mt-1">
-                              <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-600 flex items-center justify-center"><ShieldCheck size={16} /></div>
-                              <div><h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Librarian Portal</h4></div>
+                          <Link href="/admin/login" className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors mt-1">
+                              <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><ShieldCheck size={16} /></div>
+                              <div><h4 className="text-sm font-bold text-gray-800">Librarian Portal</h4></div>
                           </Link>
                       </div>
                   </div>
@@ -86,20 +86,18 @@ export default function Navbar() {
               <Link href="/contact" className={`text-sm ${isActive('/contact')}`}>Contact</Link>
             </div>
 
-            {/* 3. RIGHT SIDE: THEME & USER */}
             <div className="hidden lg:flex items-center gap-2">
               <Link 
                 href="/dashboard" 
-                className="p-2 rounded-full text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-tacsfon-green transition-all"
+                className="p-2 rounded-full text-gray-400 hover:bg-gray-50 hover:text-tacsfon-green transition-all"
                 title="Go to Dashboard"
               >
                 <User size={24} />
               </Link>
             </div>
 
-            {/* 4. MOBILE MENU BTN */}
             <div className="lg:hidden flex items-center gap-2">
-              <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-gray-800 dark:text-gray-200 focus:outline-none">
+              <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-gray-800 focus:outline-none">
                 {isOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
             </div>
@@ -108,7 +106,7 @@ export default function Navbar() {
       </nav>
 
       {/* ======================= 5. NEW FUTURISTIC MOBILE MENU OVERLAY ======================= */}
-      <div className={`fixed inset-0 z-40 bg-white dark:bg-[#0a0a0a] transition-transform duration-500 ease-in-out lg:hidden flex flex-col pt-24 px-6 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-0 z-40 bg-white transition-transform duration-500 ease-in-out lg:hidden flex flex-col pt-24 px-6 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           
           {/* Background Decorative Element (The "Futuristic" Blob) */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
@@ -130,7 +128,7 @@ export default function Navbar() {
                 <MobileLink href="/learning-hub" icon={<Brain size={22}/>} label="Learning Hub" />
             </div>
 
-            <hr className="my-6 border-gray-100 dark:border-gray-800" />
+            <hr className="my-6 border-gray-100" />
 
             {/* SECONDARY NAVIGATION */}
             <div className="space-y-2">
@@ -142,12 +140,12 @@ export default function Navbar() {
             {/* PORTALS (Bottom of menu) */}
             <div className="mt-auto pt-8 space-y-4">
                 {/* Student Sign In (Green) */}
-                <Link href="/student-login" className="flex items-center justify-center gap-3 w-full bg-gray-900 dark:bg-white dark:text-gray-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+                <Link href="/student-login" className="flex items-center justify-center gap-3 w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
                    <LogIn size={20} /> Student Sign In
                 </Link>
 
                 {/* Librarian Portal (Orange) */}
-                <Link href="/admin/login" className="flex items-center justify-center gap-3 w-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 py-4 rounded-2xl font-bold text-lg border border-orange-100 dark:border-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors">
+                <Link href="/admin/login" className="flex items-center justify-center gap-3 w-full bg-orange-50 text-orange-600 py-4 rounded-2xl font-bold text-lg border border-orange-100 hover:bg-orange-100 transition-colors">
                    <ShieldCheck size={20} /> Librarian Portal
                 </Link>
             </div>
@@ -163,9 +161,9 @@ function MobileLink({ href, icon, label, active = false }: { href: string, icon:
   return (
       <Link 
           href={href} 
-          className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${active ? 'bg-green-50 dark:bg-green-900/20 text-tacsfon-green font-extrabold' : 'text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+          className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${active ? 'bg-green-50 text-tacsfon-green font-extrabold' : 'text-gray-700 font-bold hover:bg-gray-50'}`}
       >
-          <span className={`${active ? 'text-tacsfon-green' : 'text-gray-400 dark:text-gray-500'}`}>{icon}</span>
+          <span className={`${active ? 'text-tacsfon-green' : 'text-gray-400'}`}>{icon}</span>
           <span className="text-lg tracking-tight">{label}</span>
       </Link>
   );
