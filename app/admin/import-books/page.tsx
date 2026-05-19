@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Search, BookOpen, Download, Loader2, Save, X, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
+import { uploadBook } from '@/app/actions';
 
 // --- UTILITY: SMART CATEGORIZER (The "Organizer") ---
 // We analyze the raw keywords and force them into YOUR shelves.
@@ -204,7 +205,8 @@ export default function ImportBooks() {
             .from('books')
             .getPublicUrl(fileName);
 
-        const { error } = await supabase.from('books').insert([{
+        // Server Action call
+        await uploadBook({
             // 1. Text Fields
             title: selectedBook.title,
             author: selectedBook.author,
@@ -216,9 +218,7 @@ export default function ImportBooks() {
             pdf_url: publicUrl,                // Matches 'pdf_url' column
             total_copies: 1,
             available_copies: 1
-        }]);
-
-        if (error) throw error;
+        });
         
         setMessage('Book saved to ' + selectedBook.category + '!');
         setTimeout(() => {

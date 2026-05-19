@@ -108,7 +108,7 @@ export default function Home() {
   useEffect(() => {
     async function initData() {
       const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2500));
-      const fetchData = supabase.from('books').select('*').order('title', { ascending: true });
+      const fetchData = supabase.from('books').select('*').eq('is_approved', true).order('title', { ascending: true });
       const [_, dataResult] = await Promise.all([minLoaderTime, fetchData]);
 
       if (dataResult.error) {

@@ -121,6 +121,7 @@ export default function BookReader() {
         .from('books')
         .select('*')
         .eq('id', id)
+        .eq('is_approved', true)
         .single();
       setBook(data);
       setLoading(false);

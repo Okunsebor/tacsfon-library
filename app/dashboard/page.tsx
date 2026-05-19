@@ -56,7 +56,7 @@ export default function StudentDashboard() {
       const activeCount = allLoans.filter((l: any) => l.status === 'active').length;
       setStats(prev => ({ ...prev, booksRead: historyData.length, hoursRead: historyData.length * 2, activeBorrows: activeCount }));
 
-      const { data: books } = await supabase.from('books').select('*').order('created_at', { ascending: false }).limit(8);
+      const { data: books } = await supabase.from('books').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(8);
       const allBooks = books || [];
       setRecommendedBooks(allBooks.slice(0, 4));
       setNewBooks(allBooks.slice(4, 8));

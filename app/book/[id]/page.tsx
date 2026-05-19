@@ -48,7 +48,7 @@ export default function BookDetails() {
     init();
 
     async function fetchBook() {
-      const { data: bookData } = await supabase.from('books').select('*').eq('id', id).single();
+      const { data: bookData } = await supabase.from('books').select('*').eq('id', id).eq('is_approved', true).single();
       setBook(bookData);
 
       if (bookData) {
