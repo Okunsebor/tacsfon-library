@@ -10,58 +10,13 @@ import {
 } from 'lucide-react';
 import EventShowcase from './components/EventShowcase';
 
-// --- COMPONENT: SPLASH SCREEN (UPDATED) ---
-function Preloader() {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white transition-opacity duration-700">
-      
-      {/* LOGO CONTAINER: Adjust width (w-[300px]) if you need it bigger/smaller */}
-      <div className="relative w-[300px] md:w-[400px] aspect-[3/1]">
-        
-        {/* LAYER 1: THE GHOST (Faint Gray Background) */}
-        {/* This stays static so you see what is about to be filled */}
-        <div className="absolute inset-0 opacity-10 grayscale">
-            <img 
-              src="/tacsfon-brand.png" 
-              alt="Loading..." 
-              className="w-full h-full object-contain" 
-            />
-        </div>
 
-        {/* LAYER 2: THE WIPE (Full Color Reveal) */}
-        {/* The 'animate-brand-wipe' class expands the width from 0% to 100% */}
-        <div className="absolute inset-y-0 left-0 overflow-hidden animate-brand-wipe border-r-2 border-orange-500/20">
-            {/* INNER CONTAINER: Must match the parent size exactly so the image doesn't squish */}
-            <div className="relative w-[300px] md:w-[400px] aspect-[3/1]"> 
-                <img 
-                  src="/tacsfon-brand.png" 
-                  alt="Loading..." 
-                  className="w-full h-full object-contain" 
-                />
-            </div>
-        </div>
-
-      </div>
-
-      {/* CUSTOM CSS FOR THE WIPE ANIMATION */}
-      <style jsx>{`
-        @keyframes brand-wipe {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        .animate-brand-wipe {
-          animation: brand-wipe 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-      `}</style>
-    </div>
-  );
-}
 export default function Home() {
   const [books, setBooks] = useState<any[]>([]);
   const [trendingBooks, setTrendingBooks] = useState<any[]>([]); // New State for Trending
   const [search, setSearch] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -107,14 +62,12 @@ export default function Home() {
   // --- DATA FETCHING ---
   useEffect(() => {
     async function initData() {
-      const minLoaderTime = new Promise(resolve => setTimeout(resolve, 2500));
-      const fetchData = supabase.from('books').select('*').eq('is_approved', true).order('title', { ascending: true });
-      const [_, dataResult] = await Promise.all([minLoaderTime, fetchData]);
+      const { data: dataResult, error } = await supabase.from('books').select('*').eq('is_approved', true).order('title', { ascending: true });
 
-      if (dataResult.error) {
-          console.error(dataResult.error);
+      if (error) {
+          console.error(error);
       } else {
-          const allBooks = dataResult.data || [];
+          const allBooks = dataResult || [];
           setBooks(allBooks);
           
           // ⚡ CREATE TRENDING COLLECTION (Random Shuffle for "Healthy Mix")
@@ -122,7 +75,6 @@ export default function Home() {
           const shuffled = [...allBooks].sort(() => 0.5 - Math.random());
           setTrendingBooks(shuffled.slice(0, 10));
       }
-      setIsLoading(false);
     }
     initData();
   }, []);
@@ -146,7 +98,7 @@ export default function Home() {
     }, 3000); 
 
     return () => clearInterval(scrollInterval);
-  }, [isLoading]);
+  }, []);
 
   const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -191,7 +143,7 @@ export default function Home() {
 
   const sortedCategoryNames = Object.keys(categories).sort();
 
-  if (isLoading) return <Preloader />;
+
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">

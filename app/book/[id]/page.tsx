@@ -1,6 +1,5 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
-import FuturisticLoader from '@/app/components/FuturisticLoader';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
 import Link from 'next/link';
@@ -117,11 +116,7 @@ export default function BookDetails() {
     setSubmitting(false);
   };
 
-  if (loading) return (
-  <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-    <FuturisticLoader />
-  </div>
-);
+  if (loading) return null;
 
   if (!book) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
