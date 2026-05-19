@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Square, Volume2, Gauge, Mic } from 'lucide-react';
+import { Play, Pause, Square, Volume2, Gauge, Mic, X } from 'lucide-react';
 
 interface AudioReaderProps {
   documentText: string;
@@ -23,6 +23,7 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
   const [supported, setSupported] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const selectedVoiceURIRef = useRef<string>('');
   
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -225,14 +226,32 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
 
   if (!supported) {
     return (
-      <div className="flex items-center gap-3 px-5 py-3 bg-rose-50 border border-rose-100 rounded-2xl text-rose-500 text-sm font-medium">
+      <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3 px-5 py-3 bg-rose-50 border border-rose-100 rounded-full text-rose-500 text-sm font-medium shadow-lg">
         <Volume2 size={18} /> Your browser does not support audio reading.
       </div>
     );
   }
 
+  if (!isExpanded) {
+    return (
+      <button
+        onClick={() => setIsExpanded(true)}
+        className="fixed bottom-6 left-6 z-50 p-4 bg-white border border-gray-200 rounded-full shadow-lg opacity-50 hover:opacity-100 transition-opacity duration-300 flex items-center justify-center group"
+        title="Open Audio Reader"
+      >
+        {readingState === 'playing' ? (
+          <Mic size={24} className="text-tacsfon-green animate-pulse" />
+        ) : readingState === 'paused' ? (
+          <Mic size={24} className="text-tacsfon-orange" />
+        ) : (
+          <Volume2 size={24} className="text-gray-500 group-hover:text-tacsfon-green transition-colors" />
+        )}
+      </button>
+    );
+  }
+
   return (
-    <div className={`inline-flex items-center gap-3 p-2 pr-4 rounded-2xl shadow-md border transition-all duration-300 ${
+    <div className={`fixed bottom-6 left-6 z-50 inline-flex items-center gap-3 p-2 pr-4 rounded-full shadow-xl border transition-all duration-300 ${
       readingState === 'playing'
         ? 'bg-gradient-to-r from-tacsfon-green/10 via-white to-white border-tacsfon-green/30 shadow-tacsfon-green/10'
         : readingState === 'paused'
@@ -346,6 +365,16 @@ export default function AudioReader({ documentText }: AudioReaderProps) {
         </>
       )}
 
+      <div className="h-8 w-px bg-gray-200 mx-1" />
+      
+      {/* Minimize Button */}
+      <button
+        onClick={() => setIsExpanded(false)}
+        className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+        title="Minimize"
+      >
+        <X size={18} />
+      </button>
     </div>
   );
 }
