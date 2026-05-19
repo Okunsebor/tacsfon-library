@@ -467,162 +467,167 @@ export default function BookReader() {
         />
       </div>
 
-      {/* ── TOP BAR ── */}
-      <header
-        className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b transition-colors duration-500"
-        style={{ borderColor, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)' }}
+      {/* ── FLOATING TRIGGER BUTTON ── */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed left-2 top-1/2 -translate-y-1/2 z-[9999] p-3 rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95 border"
+        style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', borderColor, color: accent }}
+        title="Open Reader Menu"
       >
-        {/* Left */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 rounded-lg hover:opacity-70 transition-opacity"
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        <Menu size={20} />
+      </button>
+
+      {/* ── SLIDE-OVER READER MENU ── */}
+      <div
+        className={`fixed inset-y-0 left-0 z-[10000] w-full sm:w-[340px] shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ background: bgSidebar, borderRight: `1px solid ${borderColor}` }}
+      >
+        <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor }}>
+          <h2 className="font-bold text-sm truncate pr-4" style={{ color: textColor }}>{book.title}</h2>
+          <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-full hover:bg-black/5 transition-colors" style={{ color: textMuted }}>
+            <X size={20} />
           </button>
-          <Link
-            href={`/book/${id}`}
-            className="flex items-center gap-2 text-sm font-bold hover:opacity-70 transition-opacity"
-            style={{ color: accent }}
-          >
-            <ArrowLeft size={16} /> <span className="hidden sm:inline">Book Details</span>
-          </Link>
-          <span className="hidden md:inline text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(0,104,56,0.08)', color: accent }}>
-            {Math.round(scrollProgress)}% read
-          </span>
         </div>
 
-        {/* Center — Title */}
-        <h1 className="text-sm font-bold truncate max-w-[200px] md:max-w-md text-center" style={{ color: textColor }}>
-          {book.title}
-        </h1>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {/* Audio Controls */}
+          <div className="p-4 border-b space-y-4" style={{ borderColor }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: textMuted }}>Audio Player</p>
+            <div className="flex flex-col gap-3">
+              {paragraphs.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => {
+                        if (speakingParagraph === null) playParagraph(0);
+                        else if (isPaused) resumeSpeaking();
+                        else pauseSpeaking();
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl transition-all shadow-md hover:opacity-90 active:scale-95"
+                      style={{ background: accent, color: '#fff' }}
+                    >
+                      {speakingParagraph !== null && !isPaused ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                      {speakingParagraph !== null ? (isPaused ? 'Resume' : 'Pause') : 'Play Audio'}
+                    </button>
+                    {speakingParagraph !== null && (
+                      <button
+                        onClick={stopSpeaking}
+                        className="p-3 rounded-xl transition-all hover:opacity-90 active:scale-95"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444' }}
+                        title="Stop"
+                      >
+                        <Square size={18} fill="currentColor" />
+                      </button>
+                    )}
+                  </div>
 
-        {/* Right — Controls */}
-        <div className="flex items-center gap-1">
-          <button onClick={() => changeFontSize(-1)} className="p-2 rounded-lg hover:opacity-70 transition-opacity" title="Decrease font"><Minus size={16} /></button>
-          <span className="text-xs font-bold w-8 text-center" style={{ color: textMuted }}>{fontSize}</span>
-          <button onClick={() => changeFontSize(1)} className="p-2 rounded-lg hover:opacity-70 transition-opacity" title="Increase font"><Plus size={16} /></button>
-        </div>
-      </header>
+                  <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border" style={{ borderColor }}>
+                    <Gauge size={16} style={{ color: textMuted }} />
+                    <select
+                      value={speechRate}
+                      onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                      className="bg-transparent text-xs font-bold outline-none cursor-pointer flex-1"
+                      style={{ color: textColor }}
+                    >
+                      {SPEED_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label} Speed</option>
+                      ))}
+                    </select>
+                  </div>
 
-      {/* ── BODY ── */}
-      <div className="flex flex-1 min-h-0 relative">
-
-        {/* ── SIDEBAR (desktop: static, mobile: overlay) ── */}
-        <aside
-          className={`
-            absolute lg:relative z-30 top-0 left-0 h-full w-[280px] shrink-0 border-r transition-all duration-300 overflow-y-auto
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          `}
-          style={{ borderColor, background: bgSidebar }}
-        >
-          {/* Book Info */}
-          <div className="p-5 border-b" style={{ borderColor }}>
-            <div className="w-full aspect-[2/3] rounded-xl overflow-hidden mb-4 shadow-lg">
-              <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
+                  {voices.length > 0 && (
+                    <div className="flex items-center gap-2 bg-white/50 p-2 rounded-xl border" style={{ borderColor }}>
+                      <Headphones size={16} style={{ color: textMuted }} />
+                      <select
+                        value={selectedVoiceURI}
+                        onChange={(e) => handleVoiceChange(e.target.value)}
+                        className="bg-transparent text-xs font-bold outline-none cursor-pointer flex-1 truncate"
+                        style={{ color: textColor }}
+                      >
+                        {voices.map(v => (
+                          <option key={v.voiceURI} value={v.voiceURI}>
+                            {v.name.replace(/(Microsoft|Google|Apple)\s/gi, '').substring(0, 25)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-center italic" style={{ color: textMuted }}>Audio unavailable</p>
+              )}
             </div>
-            <h2 className="font-bold text-base leading-tight mb-1">{book.title}</h2>
-            <p className="text-sm" style={{ color: textMuted }}>{book.author}</p>
-            {book.category && (
-              <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(0,104,56,0.08)', color: accent }}>
-                {book.category}
-              </span>
-            )}
           </div>
 
-          {/* Table of Contents */}
+          {/* Theme & Font */}
+          <div className="p-4 border-b space-y-4" style={{ borderColor }}>
+             <p className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: textMuted }}>Appearance</p>
+             <div className="flex items-center justify-between bg-white/50 p-2 rounded-xl border" style={{ borderColor }}>
+               <button onClick={() => changeFontSize(-1)} className="p-2 rounded-lg hover:bg-black/5" title="Decrease font"><Minus size={16} style={{ color: textColor }} /></button>
+               <span className="text-xs font-bold" style={{ color: textMuted }}>Font: {fontSize}px</span>
+               <button onClick={() => changeFontSize(1)} className="p-2 rounded-lg hover:bg-black/5" title="Increase font"><Plus size={16} style={{ color: textColor }} /></button>
+             </div>
+             <div className="flex items-center justify-center gap-3">
+               <button onClick={() => changeTheme('light')} className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'light' ? 'border-green-600 scale-110 shadow-md' : 'border-gray-200'}`} style={{ background: '#ffffff' }} title="Light Mode" />
+               <button onClick={() => changeTheme('sepia')} className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'sepia' ? 'border-green-600 scale-110 shadow-md' : 'border-[#e7d4a6]'}`} style={{ background: '#fffbeb' }} title="Sepia Mode" />
+               <button onClick={() => changeTheme('dark')} className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'dark' ? 'border-green-600 scale-110 shadow-md' : 'border-gray-700'}`} style={{ background: '#0f172a' }} title="Dark Mode" />
+             </div>
+          </div>
+
+          {/* TOC */}
           {sections.length > 1 && (
             <div className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: textMuted }}>
                 Contents · {sections.length} sections
               </p>
-              <nav className="space-y-0.5 max-h-[40vh] overflow-y-auto pr-1">
+              <nav className="space-y-1">
                 {tocItems.map((label, i) => (
                   <button
                     key={i}
                     onClick={() => scrollToSection(i)}
-                    className={`w-full text-left text-xs py-2 px-3 rounded-lg transition-all font-medium leading-snug truncate ${
-                      activeSection === i
-                        ? 'font-bold'
-                        : 'hover:opacity-80'
+                    className={`w-full text-left text-xs py-2.5 px-3 rounded-xl transition-all font-medium leading-snug truncate ${
+                      activeSection === i ? 'font-bold' : 'hover:opacity-80 hover:bg-black/5'
                     }`}
                     style={{
                       color: activeSection === i ? accent : textMuted,
                       background: activeSection === i ? 'rgba(0,104,56,0.06)' : 'transparent',
                     }}
                   >
-                    <span className="opacity-40 mr-1.5">§{i + 1}</span>
+                    <span className="opacity-40 mr-2">§{i + 1}</span>
                     {label}
                   </button>
                 ))}
               </nav>
             </div>
           )}
+        </div>
 
-          {/* Reading Theme Control */}
-          <div className="p-4 border-t space-y-3" style={{ borderColor }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: textMuted }}>
-              Reading Theme
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => changeTheme('light')}
-                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'light' ? 'border-green-600 scale-110' : 'border-gray-200'}`}
-                style={{ background: '#ffffff' }}
-                title="Light Mode"
-              />
-              <button
-                onClick={() => changeTheme('sepia')}
-                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'sepia' ? 'border-green-600 scale-110' : 'border-[#e7d4a6]'}`}
-                style={{ background: '#fffbeb' }}
-                title="Sepia Mode"
-              />
-              <button
-                onClick={() => changeTheme('dark')}
-                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${readingTheme === 'dark' ? 'border-green-600 scale-110' : 'border-gray-700'}`}
-                style={{ background: '#0f172a' }}
-                title="Dark Mode"
-              />
-            </div>
-          </div>
-
-          {/* Sidebar Actions */}
-          <div className="p-4 mt-auto border-t space-y-2" style={{ borderColor }}>
-            {paragraphs.length > 0 && (
-              <button
-                onClick={() => {
-                  if (speakingParagraph === null) playParagraph(0);
-                  else if (isPaused) resumeSpeaking();
-                  else pauseSpeaking();
-                  setSidebarOpen(false);
-                }}
-                className="w-full flex items-center gap-2 text-sm font-bold py-2.5 px-4 rounded-xl transition-all hover:opacity-80"
-                style={{ background: 'rgba(247,148,29,0.08)', color: '#F7941D' }}
-              >
-                {speakingParagraph !== null && !isPaused ? <Pause size={16} /> : <Headphones size={16} />}
-                {speakingParagraph !== null ? (isPaused ? 'Resume Reading' : 'Pause Reading') : 'Listen to Book'}
-              </button>
-            )}
+        <div className="p-4 shrink-0 border-t space-y-2 bg-white/50" style={{ borderColor }}>
+            <Link
+              href={`/book/${id}`}
+              className="w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl transition-all hover:opacity-80 border"
+              style={{ background: '#fff', borderColor, color: textColor }}
+            >
+              <BookOpen size={16} /> Book Details
+            </Link>
             <Link
               href="/"
-              className="w-full flex items-center gap-2 text-sm font-bold py-2.5 px-4 rounded-xl transition-all hover:opacity-80"
+              className="w-full flex items-center justify-center gap-2 text-sm font-bold py-3 px-4 rounded-xl transition-all hover:opacity-80"
               style={{ background: 'rgba(0,104,56,0.06)', color: accent }}
             >
               <Library size={16} /> Back to Library
             </Link>
-          </div>
-        </aside>
+        </div>
+      </div>
 
-        {/* Mobile backdrop */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-20 bg-black/40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebarOpen(false)} />
+      )}
 
+      {/* ── BODY ── */}
+      <div className="flex flex-1 min-h-0 relative">
         {/* ── READING COLUMN ── */}
         <main ref={readingRef} className="flex-1 overflow-y-auto min-h-0 scroll-smooth transition-colors duration-500" style={{ background: readingBg, color: readingText }}>
 
@@ -774,80 +779,11 @@ export default function BookReader() {
         </main>
       </div>
 
-      {/* ── INTEGRATED MINI PLAYER (fixed bottom) ── */}
-      {speakingParagraph !== null && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-40 border-t shadow-2xl transition-all duration-300 bg-white/95"
-          style={{ borderColor, backdropFilter: 'blur(16px)' }}
-        >
-          <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-3">
-            {/* Pulsing indicator */}
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 relative" style={{ background: 'rgba(0,104,56,0.1)' }}>
-              <Volume2 size={16} style={{ color: accent }} className="animate-pulse" />
-            </div>
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold truncate" style={{ color: textColor }}>Paragraph {speakingParagraph + 1} of {paragraphs.length}</p>
-              <p className="text-[10px] truncate" style={{ color: textMuted }}>{paragraphs[speakingParagraph]?.substring(0, 60)}…</p>
-            </div>
-            {/* Controls */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Play / Pause */}
-              <button
-                onClick={() => isPaused ? resumeSpeaking() : pauseSpeaking()}
-                className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: accent, color: '#fff' }}
-                title={isPaused ? 'Resume' : 'Pause'}
-              >
-                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
-              </button>
-              {/* Skip */}
-              <button
-                onClick={skipToNextParagraph}
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: 'rgba(0,0,0,0.05)', color: textColor }}
-                title="Next paragraph"
-              >
-                <SkipForward size={14} />
-              </button>
-              {/* Stop */}
-              <button
-                onClick={stopSpeaking}
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444' }}
-                title="Stop"
-              >
-                <Square size={14} fill="currentColor" />
-              </button>
-              {/* Divider */}
-              <div className="w-px h-6 mx-1 hidden sm:block" style={{ background: borderColor }} />
-              {/* Voice */}
-              {voices.length > 0 && (
-                <div className="hidden sm:flex items-center max-w-[140px]">
-                  <select
-                    value={selectedVoiceURI}
-                    onChange={(e) => handleVoiceChange(e.target.value)}
-                    className="text-xs font-bold rounded-lg px-1.5 py-1 outline-none cursor-pointer border-none truncate w-full"
-                    style={{ background: 'rgba(0,0,0,0.04)', color: textColor }}
-                  >
-                    {voices.map(v => (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        {v.name.replace(/(Microsoft|Google|Apple)\s/gi, '').substring(0, 25)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── SCROLL TO TOP FAB ── */}
       {scrollProgress > 15 && (
         <button
           onClick={scrollToTop}
-          className={`fixed z-30 w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${speakingParagraph !== null ? 'bottom-20 right-5' : 'bottom-6 right-6'}`}
+          className="fixed z-30 bottom-6 right-6 w-12 h-12 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
           style={{ background: '#fff', color: accent, border: `1px solid ${borderColor}` }}
           title="Jump to top"
         >
