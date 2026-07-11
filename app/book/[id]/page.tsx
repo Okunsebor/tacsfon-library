@@ -1,53 +1,64 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Send, Wifi, AlertTriangle, MessageSquare, User as UserIcon, ChevronDown, ChevronUp, Headphones } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { extractTextFromPDF } from '@/lib/pdfUtils';
-
+import { sanitizeHtml } from '@/lib/sanitize';
+import { Book, Comment } from '@/lib/types';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function BookDetails() {
   const { id } = useParams();
   const router = useRouter();
   
-  const [book, setBook] = useState<any>(null);
+  const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
-  const [student, setStudent] = useState<any>(null);
+  const [student, setStudent] = useState<SupabaseUser | null>(null);
 
   // --- UI STATES ---
   const [isExpanded, setIsExpanded] = useState(false); // For Read More toggle
 
   // --- COMMENT STATE ---
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newName, setNewName] = useState('');
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  // --- AUDIO READER STATES (REMOVED) ---
 
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setStudent(session.user);
-        const { data: request } = await supabase
-          .from('borrow_requests')
+        
+        // Query pending requests from the 'loans' table (unified system)
+        const { data: requests } = await supabase
+          .from('loans')
           .select('*')
           .eq('book_id', id)
           .eq('student_email', session.user.email)
-          .eq('status', 'Pending')
-          .single();
-        if (request) setRequestStatus(request.request_type);
+          .eq('status', 'requested')
+          .order('request_date', { ascending: false });
+
+        if (requests && requests.length > 0) {
+          const isDigital = requests[0].book_title.endsWith('(PDF Request)');
+          setRequestStatus(isDigital ? 'digital' : 'physical');
+        }
       }
     }
     init();
 
     async function fetchBook() {
-      const { data: bookData } = await supabase.from('books').select('*').eq('id', id).eq('is_approved', true).single();
+      const { data: bookData } = await supabase
+        .from('books')
+        .select('*')
+        .eq('id', id)
+        .eq('is_approved', true)
+        .single();
+      
       setBook(bookData);
 
       if (bookData) {
@@ -70,10 +81,14 @@ export default function BookDetails() {
   }, [id]);
 
   async function fetchComments() {
-    const { data } = await supabase.from('comments').select('*').eq('book_id', id).order('created_at', { ascending: false });
+    const { data } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('book_id', id)
+      .order('created_at', { ascending: false });
+    
     if (data) setComments(data);
   }
-
 
   const handleListenToBook = () => {
     if (!book?.pdf_url) return;
@@ -86,13 +101,17 @@ export default function BookDetails() {
       router.push('/student-login');
       return;
     }
-    const { error } = await supabase.from('borrow_requests').insert([{
+
+    const displayTitle = type === 'digital' ? `${book?.title} (PDF Request)` : book?.title;
+
+    // Insert into loans table to ensure requests are visible in the Librarian Desk
+    const { error } = await supabase.from('loans').insert([{
       student_email: student.email,
       student_name: student.user_metadata?.full_name || student.email,
-      book_id: book.id,
-      book_title: book.title,
-      status: 'Pending',
-      request_type: type
+      book_id: book?.id,
+      book_title: displayTitle,
+      status: 'requested',
+      request_date: new Date().toISOString()
     }]);
 
     if (error) {
@@ -118,13 +137,15 @@ export default function BookDetails() {
 
   if (loading) return null;
 
-  if (!book) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="p-4 bg-red-50 text-red-500 rounded-full mb-4"><AlertTriangle size={32}/></div>
-      <h1 className="text-2xl font-bold text-gray-800">Book Not Found</h1>
-      <Link href="/" className="mt-4 text-tacsfon-green hover:underline font-bold">Return Home</Link>
-    </div>
-  );
+  if (!book) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="p-4 bg-red-50 text-red-500 rounded-full mb-4"><AlertTriangle size={32}/></div>
+        <h1 className="text-2xl font-bold text-gray-800">Book Not Found</h1>
+        <Link href="/" className="mt-4 text-tacsfon-green hover:underline font-bold">Return Home</Link>
+      </div>
+    );
+  }
 
   const isInternetArchive = book.ebook_access === 'public';
   const isReadable = isInternetArchive || !!book.pdf_url; 
@@ -154,7 +175,7 @@ export default function BookDetails() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-8 md:gap-12 mb-16">
             
-            {/* --- LEFT: FLOATING COVER (Solid - No Glass) --- */}
+            {/* --- LEFT: FLOATING COVER --- */}
             <div className="w-full flex flex-col gap-6">
                 <div className="relative aspect-[2/3] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden group transform hover:scale-[1.02] transition-transform duration-500 bg-gray-800">
                     <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
@@ -187,9 +208,9 @@ export default function BookDetails() {
             {/* --- RIGHT: GLASS DETAILS CARD --- */}
             <div className="flex flex-col space-y-8">
                 
-                {/* 1. INFO CARD (More Transparent Glass) */}
+                {/* 1. INFO CARD */}
                 <div className="p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-white/20 backdrop-blur-xl relative overflow-hidden transition-all hover:bg-white/65"
-                     style={{ background: 'rgba(255, 255, 255, 0.6)' }} // ⚡ MORE TRANSPARENT (0.6 instead of 0.85)
+                     style={{ background: 'rgba(255, 255, 255, 0.6)' }}
                 >
                     <div className="mb-6">
                          <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -205,20 +226,17 @@ export default function BookDetails() {
                     </div>
 
                     <div className="mb-8">
-                        {/* Audio Reader UI Removed (Now handled on Dedicated Reader Page) */}
-
                         <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <BookOpen size={18} className="text-green-700"/> Synopsis
                         </h3>
                         
-                        {/* ⚡ READ MORE LOGIC */}
+                        {/* READ MORE LOGIC WITH SANITIZATION */}
                         <div className="relative">
                             <div 
-    className={`text-gray-800 leading-relaxed text-lg font-normal transition-all duration-300 ${!isExpanded ? 'line-clamp-3' : ''} [&>p]:mb-4`}
-    dangerouslySetInnerHTML={{ __html: description }}
-/>
+                                className={`text-gray-800 leading-relaxed text-lg font-normal transition-all duration-300 ${!isExpanded ? 'line-clamp-3' : ''} [&>p]:mb-4`}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }}
+                            />
                             
-                            {/* Toggle Button (Only shows if text is long enough - simplified logic here) */}
                             {description.length > 150 && (
                                 <button 
                                     onClick={() => setIsExpanded(!isExpanded)}
@@ -280,9 +298,9 @@ export default function BookDetails() {
                     </div>
                 </div>
 
-                {/* 2. COMMENTS CARD (Transparent Glass) */}
+                {/* 2. COMMENTS CARD */}
                 <div className="p-8 rounded-[2.5rem] shadow-xl border border-white/20 backdrop-blur-md"
-                     style={{ background: 'rgba(255, 255, 255, 0.5)' }} // ⚡ EVEN MORE TRANSPARENT for comments
+                     style={{ background: 'rgba(255, 255, 255, 0.5)' }}
                 >
                     <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <MessageSquare size={20} className="text-green-700" />
@@ -321,7 +339,7 @@ export default function BookDetails() {
                             comments.map((c) => (
                                 <div key={c.id} className="flex gap-4 p-4 rounded-2xl bg-white/40 border border-white/30 hover:bg-white/60 transition-colors shadow-sm">
                                     <div className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-600 shrink-0 shadow-sm font-bold">
-                                        <User size={18} />
+                                        <UserIcon size={18} />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between mb-1">
@@ -338,8 +356,6 @@ export default function BookDetails() {
 
             </div>
         </div>
-
-
       </main>
     </div>
   );

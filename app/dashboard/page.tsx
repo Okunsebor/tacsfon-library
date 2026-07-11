@@ -9,18 +9,20 @@ import {
   AlertCircle, MapPin, Zap, Brain, Flame, Home, Star,
   Heart, Search, Bell, ChevronRight, PlayCircle, TrendingUp
 } from 'lucide-react';
+import { Book, Loan } from '@/lib/types';
+import BookCard from '@/app/components/BookCard';
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userName, setUserName] = useState('Scholar');
-  const [recommendedBooks, setRecommendedBooks] = useState<any[]>([]);
-  const [newBooks, setNewBooks] = useState<any[]>([]);
+  const [recommendedBooks, setRecommendedBooks] = useState<Book[]>([]);
+  const [newBooks, setNewBooks] = useState<Book[]>([]);
   const [greeting, setGreeting] = useState('');
   const [recentBooks, setRecentBooks] = useState<any[]>([]);
-  const [loans, setLoans] = useState<any[]>([]);
-  const [featuredBook, setFeaturedBook] = useState<any>(null);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [featuredBook, setFeaturedBook] = useState<Book | null>(null);
   const [activeTab, setActiveTab] = useState('Recommended');
   const [stats, setStats] = useState({ booksRead: 0, hoursRead: 0, activeBorrows: 0, streak: 7 });
 
@@ -51,13 +53,13 @@ export default function StudentDashboard() {
       const { data: loanData } = await supabase
         .from('loans').select('*').eq('student_email', email)
         .order('request_date', { ascending: false });
-      const allLoans = loanData || [];
+      const allLoans: Loan[] = loanData || [];
       setLoans(allLoans);
-      const activeCount = allLoans.filter((l: any) => l.status === 'active').length;
+      const activeCount = allLoans.filter((l) => l.status === 'active').length;
       setStats(prev => ({ ...prev, booksRead: historyData.length, hoursRead: historyData.length * 2, activeBorrows: activeCount }));
 
       const { data: books } = await supabase.from('books').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(8);
-      const allBooks = books || [];
+      const allBooks: Book[] = books || [];
       setRecommendedBooks(allBooks.slice(0, 4));
       setNewBooks(allBooks.slice(4, 8));
       if (allBooks.length > 0) setFeaturedBook(allBooks[0]);
@@ -216,7 +218,7 @@ export default function StudentDashboard() {
                   </div>
                 ))
               ) : displayBooks.map((book) => (
-                <BookCard key={book.id} book={book} />
+                <BookCard key={book.id} book={book} showRating orangeTheme hoverOffsetClass="group-hover:-translate-y-1.5" imgSizes="(max-width: 768px) 150px, 200px" />
               ))}
             </div>
           </section>
@@ -254,7 +256,7 @@ export default function StudentDashboard() {
             </div>
           </section>
 
-          {/* ===== JUMP BACK IN (Recent Reading) ===== */}
+          {/* ===== JUMP BACK IN ===== */}
           {recentBooks.length > 0 && (
             <section className="mx-6 mt-8">
               <h2 className="font-extrabold text-gray-900 text-lg mb-4 flex items-center gap-2">
@@ -298,11 +300,11 @@ export default function StudentDashboard() {
                       <CheckCircle size={18} className="text-green-500 shrink-0" />
                       <div>
                         <p className="font-bold text-gray-900 text-sm">{loan.book_title}</p>
-                        <p className="text-xs text-green-600">Due: {new Date(loan.due_date).toLocaleDateString()}</p>
+                        <p className="text-xs text-green-600">Due: {new Date(loan.due_date || '').toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="text-center">
-                      <span className="text-lg font-extrabold text-gray-900 block">{Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - Date.now()) / 86400000))}</span>
+                      <span className="text-lg font-extrabold text-gray-900 block">{Math.max(0, Math.ceil((new Date(loan.due_date || '').getTime() - Date.now()) / 86400000))}</span>
                       <span className="text-[10px] text-gray-400 uppercase font-bold">Days Left</span>
                     </div>
                   </div>
@@ -314,7 +316,7 @@ export default function StudentDashboard() {
           {/* ===== SETTINGS & LOGOUT ===== */}
           <section className="mx-6 mt-8">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
-              <Link href="/dashboard/settings" className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors group">
+              <Link href="/dashboard/settings" className="flex items-between justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gray-100 rounded-xl group-hover:bg-blue-100 transition-colors"><Settings size={18} className="text-gray-500 group-hover:text-blue-600" /></div>
                   <span className="font-bold text-gray-900 text-sm">Profile Settings</span>
@@ -418,25 +420,5 @@ function StatCard({ icon, value, label, color, bg }: { icon: any; value: number;
       </div>
       <span className="text-3xl font-extrabold text-gray-900 block">{value}</span>
     </div>
-  );
-}
-
-function BookCard({ book }: { book: any }) {
-  return (
-    <Link href={`/book/${book.id}`} className="group block">
-      <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden mb-3 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1.5 transition-all duration-300">
-        <Image src={book.cover_url || `https://placehold.co/300x450?text=${encodeURIComponent(book.title?.substring(0,8) || 'Book')}`}
-          alt={book.title} fill className="object-cover" unoptimized={!book.cover_url} sizes="(max-width: 768px) 150px, 200px" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-          <span className="text-white text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#F7941D' }}>Read</span>
-        </div>
-      </div>
-      <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-0.5 group-hover:text-tacsfon-green transition-colors">{book.title}</h3>
-      <p className="text-xs text-gray-400 truncate">{book.author}</p>
-      <div className="flex items-center gap-1 mt-1">
-        <Star size={10} className="fill-yellow-400 text-yellow-400" />
-        <span className="text-[10px] text-gray-400 font-medium">4.5</span>
-      </div>
-    </Link>
   );
 }

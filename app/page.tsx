@@ -1,27 +1,56 @@
 'use client';
-import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { 
-  Search, BookOpen, ArrowRight, Folder, Brain, ChevronLeft, ChevronRight, 
-  Users, Play, Flame, GraduationCap, Shield, Heart, TrendingUp 
+  Search, BookOpen, ArrowRight, Folder, Brain, 
+  Users, Flame, GraduationCap, Shield, Heart, TrendingUp 
 } from 'lucide-react';
 import EventShowcase from './components/EventShowcase';
+import BookCard from '@/app/components/BookCard';
+import { Book } from '@/lib/types';
 
+// --- 🧠 UPGRADED CATEGORIZER (Moved outside component to avoid re-creation) ---
+const smartCategorize = (book: Book) => {
+  // 1. Force Database Cleanup (Merge duplicate religious terms)
+  let dbCat = (book.category || "").toLowerCase();
+  if (['religion', 'spiritual', 'christianity', 'faith', 'gospel'].includes(dbCat)) {
+      return 'Spiritual Growth';
+  }
+  if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
+  
+  const text = (book.title + " " + (book.summary || "")).toLowerCase();
+  const author = (book.author || "").toLowerCase();
+
+  // 2. Author Intelligence
+  if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
+  if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
+     return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
+  }
+  if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
+  if (author.match(/chapman|vallotton/i)) return 'Relationships';
+
+  // 3. Keyword Intelligence
+  if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
+  if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
+  if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
+  if (text.match(/physics|chem|math|calculus|program|code|python|engineer|biology|statistic|law/i)) return 'Academic';
+  if (text.match(/love|marriage|dating|sex|courtship/i)) return 'Relationships';
+  
+  return 'General Collection';
+};
 
 export default function Home() {
-  const [books, setBooks] = useState<any[]>([]);
-  const [trendingBooks, setTrendingBooks] = useState<any[]>([]); // New State for Trending
+  const [books, setBooks] = useState<Book[]>([]);
+  const [trendingBooks, setTrendingBooks] = useState<Book[]>([]); // New State for Trending
   const [search, setSearch] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- SLIDER CONFIGURATION ---
-  const slides = [
+  const slides = useMemo(() => [
     {
       id: 1,
       image: "/slide1.jpg", 
@@ -46,7 +75,7 @@ export default function Home() {
       cta: "Join The Family",
       link: "/contact"
     }
-  ];
+  ], []);
 
   // Slider Timer
   useEffect(() => {
@@ -56,9 +85,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-
   // --- DATA FETCHING ---
   useEffect(() => {
     async function initData() {
@@ -67,11 +93,10 @@ export default function Home() {
       if (error) {
           console.error(error);
       } else {
-          const allBooks = dataResult || [];
+          const allBooks: Book[] = dataResult || [];
           setBooks(allBooks);
           
           // ⚡ CREATE TRENDING COLLECTION (Random Shuffle for "Healthy Mix")
-          // We create a copy, shuffle it, and take the top 10
           const shuffled = [...allBooks].sort(() => 0.5 - Math.random());
           setTrendingBooks(shuffled.slice(0, 10));
       }
@@ -100,50 +125,24 @@ export default function Home() {
     return () => clearInterval(scrollInterval);
   }, []);
 
-  const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
+  const filteredBooks = useMemo(() => {
+    return books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
+  }, [books, search]);
 
-  // --- 🧠 UPGRADED CATEGORIZER ---
-  const smartCategorize = (book: any) => {
-    // 1. Force Database Cleanup (Merge duplicate religious terms)
-    let dbCat = (book.category || "").toLowerCase();
-    if (['religion', 'spiritual', 'christianity', 'faith', 'gospel'].includes(dbCat)) {
-        return 'Spiritual Growth';
-    }
-    if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
-    
-    const text = (book.title + " " + (book.summary || "")).toLowerCase();
-    const author = (book.author || "").toLowerCase();
+  // --- MEMOIZED CATEGORIES REDUCTION (Prevents re-running smartCategorize on slide/search changes) ---
+  const categories = useMemo(() => {
+    return books.reduce((acc, book) => {
+      let catRaw = smartCategorize(book);
+      const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1);
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(book);
+      return acc;
+    }, {} as Record<string, Book[]>);
+  }, [books]);
 
-    // 2. Author Intelligence
-    if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
-    if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
-       return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
-    }
-    if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
-    if (author.match(/chapman|vallotton/i)) return 'Relationships';
-
-    // 3. Keyword Intelligence
-    if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
-    if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
-    if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
-    if (text.match(/physics|chem|math|calculus|program|code|python|engineer|biology|statistic|law/i)) return 'Academic';
-    if (text.match(/love|marriage|dating|sex|courtship/i)) return 'Relationships';
-    
-    return 'General Collection';
-  };
-
-  const categories = books.reduce((acc, book) => {
-    let catRaw = smartCategorize(book);
-    // Capitalize first letter
-    const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1);
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(book);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  const sortedCategoryNames = Object.keys(categories).sort();
-
-
+  const sortedCategoryNames = useMemo(() => {
+    return Object.keys(categories).sort();
+  }, [categories]);
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">
@@ -182,18 +181,15 @@ export default function Home() {
 
       {/* --- QUICK ACCESS --- */}
       <section className="max-w-7xl mx-auto px-4 md:px-6 -mt-10 md:-mt-16 relative z-40">
-        {/* FIX: Changed grid-cols-1 to grid-cols-2 so they sit side-by-side on mobile */}
         <div className="grid grid-cols-2 gap-3 md:gap-6">
             
             {/* CARD 1: ACADEMIC HUB */}
             <Link href="/resources" className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl shadow-xl border border-gray-100 hover:border-tacsfon-neonGreen hover:shadow-[0_0_30px_rgba(0,255,136,0.15)] hover:-translate-y-1 transition-all group flex flex-col h-full justify-between">
                 <div>
                     <div className="flex justify-between items-start mb-3 md:mb-4">
-                        {/* Shrunk icon for mobile */}
                         <div className="w-10 h-10 md:w-14 md:h-14 bg-gray-900 rounded-xl md:rounded-2xl flex items-center justify-center text-tacsfon-neonGreen group-hover:scale-110 transition-transform">
                             <Folder size={20} className="md:w-6 md:h-6" />
                         </div>
-                        {/* Shrunk badge for mobile */}
                         <div className="bg-gray-100 text-gray-600 text-[8px] md:text-[10px] font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider group-hover:bg-tacsfon-neonGreen group-hover:text-black transition-colors">
                             Faculty
                         </div>
@@ -230,7 +226,8 @@ export default function Home() {
             </Link>
         </div>
       </section>
-      {/* --- NEW: EVENT SHOWCASE --- */}
+      
+      {/* --- EVENT SHOWCASE --- */}
       <EventShowcase />
 
       {/* --- VIDEO SECTION --- */}
@@ -328,7 +325,7 @@ export default function Home() {
           </div>
       </section>
 
-      {/* --- 5. BOOK COLLECTIONS SECTION --- */}
+      {/* --- BOOK COLLECTIONS SECTION --- */}
       <section id="collections" className="max-w-7xl mx-auto px-4 md:px-6 py-16 md:py-24 space-y-12 md:space-y-16">
         
         {/* Header & Search */}
@@ -365,7 +362,7 @@ export default function Home() {
         ) : (
            <div className="space-y-16">
               
-              {/* ⚡ NEW: TRENDING BOOKS SECTION (Shown First) */}
+              {/* TRENDING BOOKS SECTION */}
               {trendingBooks.length > 0 && (
                  <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -373,11 +370,10 @@ export default function Home() {
                           <span className="w-2 h-6 md:h-8 bg-orange-500 rounded-full block"></span>
                           Trending Books <TrendingUp size={20} className="text-orange-500"/>
                        </h3>
-                       {/* Count Removed as requested */}
                     </div>
                     
                     <div className="flex overflow-x-auto pb-8 gap-4 md:gap-6 snap-x snap-mandatory scrollbar-hide">
-                       {trendingBooks.map((book: any) => (
+                       {trendingBooks.map((book) => (
                           <div key={`trend-${book.id}`} className="w-[140px] md:w-[200px] flex-shrink-0 snap-start">
                              <BookCard book={book} />
                           </div>
@@ -394,13 +390,11 @@ export default function Home() {
                           <span className="w-2 h-6 md:h-8 bg-tacsfon-green rounded-full block"></span>
                           {categoryName}
                        </h3>
-                       {/* Count Removed as requested */}
                     </div>
                     
                     {/* Horizontal Scroll for Books */}
                     <div className="flex overflow-x-auto pb-8 gap-4 md:gap-6 snap-x snap-mandatory scrollbar-hide">
-                       {categories[categoryName].map((book: any) => (
-                          // ⚡ SIZE FIX: Changed min-w to fixed w (width) for uniformity
+                       {categories[categoryName].map((book) => (
                           <div key={book.id} className="w-[140px] md:w-[200px] flex-shrink-0 snap-start">
                              <BookCard book={book} />
                           </div>
@@ -414,33 +408,4 @@ export default function Home() {
 
     </main>
   );
-}
-
-// --- HELPER COMPONENT (NETWORK SAFE VERSION) ---
-function BookCard({ book }: { book: any }) {
-   // Logic: If we are using the fallback placeholder, don't optimize it (saves bandwidth/crashes)
-   const isPlaceholder = !book.cover_url;
-   const imageUrl = book.cover_url || `https://placehold.co/400x600?text=${book.title.substring(0,10)}`;
-
-   return (
-      <Link href={`/book/${book.id}`} className="group block h-full">
-         <div className="relative aspect-[2/3] bg-gray-100 rounded-2xl overflow-hidden shadow-lg mb-4 border border-gray-100 group-hover:shadow-2xl group-hover:translate-y-[-5px] transition-all duration-300">
-             <Image 
-               src={imageUrl} 
-               alt={book.title}
-               fill 
-               // ⚡ THE FIX: If it's a placeholder, skip the server download to prevent timeouts
-               unoptimized={isPlaceholder}
-               sizes="(max-width: 768px) 150px, (max-width: 1200px) 200px, 20vw"
-               className="object-cover transform group-hover:scale-110 transition-transform duration-700"
-             />
-             
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                 <span className="text-white text-xs font-bold uppercase tracking-wider">Read Now</span>
-             </div>
-         </div>
-         <h3 className="font-bold text-gray-900 leading-tight mb-1 group-hover:text-tacsfon-green transition-colors line-clamp-2 text-sm md:text-base">{book.title}</h3>
-         <p className="text-xs text-gray-500 font-medium line-clamp-1">{book.author}</p>
-      </Link>
-   );
 }

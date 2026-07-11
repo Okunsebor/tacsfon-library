@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AdminGatekeeper from '@/app/components/AdminGatekeeper';
-import { CheckCircle, XCircle, Clock, RotateCcw, Search, User, BookOpen, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, Search, User, BookOpen, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Loan } from '@/lib/types';
+import { approveLoanAction } from '@/app/actions';
 
 export default function LoanManager() {
-  const [loans, setLoans] = useState<any[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('requested'); // 'requested', 'active', 'returned'
 
@@ -26,45 +28,29 @@ export default function LoanManager() {
     }
 
     const { data } = await query;
-    setLoans(data || []);
+    setLoans((data as any) || []);
     setLoading(false);
   }
 
   // --- ACTIONS ---
 
-  // 1. APPROVE REQUEST (Give book to student)
-  const handleApprove = async (loan: any) => {
+  // 1. APPROVE REQUEST (Using atomic Server Action)
+  const handleApprove = async (loan: Loan) => {
     if (!confirm(`Approve loan for "${loan.book_title}"?`)) return;
 
-    // A. Check if stock exists
-    const { data: book } = await supabase.from('books').select('available_copies').eq('id', loan.book_id).single();
-    
-    if (!book || book.available_copies < 1) {
-        return alert("Error: No copies left in stock!");
+    const res = await approveLoanAction(loan.id, loan.book_id);
+    if (!res.success) {
+        alert(res.error || "Error approving loan.");
+    } else {
+        fetchLoans();
     }
-
-    // B. Deduct Stock
-    await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', loan.book_id);
-
-    // C. Set Loan to Active & Set Due Date (e.g., 14 days from now)
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 14); // 2 weeks
-
-    const { error } = await supabase.from('loans').update({
-        status: 'active',
-        due_date: dueDate.toISOString()
-    }).eq('id', loan.id);
-
-    if (error) alert("Error: " + error.message);
-    else fetchLoans();
   };
 
   // 2. RETURN BOOK (Student brings it back)
-  const handleReturn = async (loan: any) => {
+  const handleReturn = async (loan: Loan) => {
     if (!confirm(`Mark "${loan.book_title}" as returned?`)) return;
 
-    // A. Add Stock Back
-    // We need current stock first
+    // A. Add Stock Back (Safe decrement/increment)
     const { data: book } = await supabase.from('books').select('available_copies').eq('id', loan.book_id).single();
     
     if (book) {

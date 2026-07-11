@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Lock, ArrowRight, Loader, ShieldAlert, UserX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { verifyAdminPasskeyAction } from '@/app/actions';
 
 export default function AdminGatekeeper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AdminGatekeeper({ children }: { children: React.ReactNod
       
       const userEmail = session.user.email;
 
-      // 2. Get Allowed Admin Email from Supabase
+      // 2. Get Allowed Admin Email from Supabase settings
       const { data: setting } = await supabase
         .from('admin_settings')
         .select('setting_value')
@@ -51,23 +52,16 @@ export default function AdminGatekeeper({ children }: { children: React.ReactNod
     setError('');
 
     try {
-      // Fetch the Passkey from DB
-      const { data } = await supabase
-        .from('admin_settings')
-        .select('setting_value')
-        .eq('setting_key', 'admin_passkey') // <--- Checks the password
-        .single();
+      const res = await verifyAdminPasskeyAction(passkeyInput);
 
-      if (!data) throw new Error("System error: Passkey not found.");
-
-      if (passkeyInput === data.setting_value) {
+      if (res.success) {
         sessionStorage.setItem('tacsfon_admin_unlocked', 'true');
         setIsAuthorized(true);
       } else {
         setError("Incorrect Passkey. Access Denied.");
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An error occurred during validation.');
     } finally {
       setLoading(false);
     }

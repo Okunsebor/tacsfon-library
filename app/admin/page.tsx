@@ -19,11 +19,13 @@ import {
   LogOut,
   ChevronRight,
   Lock,
-  ClipboardList, // ✅ Added for Loan Manager Icon
+  ClipboardList,
   Wand2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Book, Loan, Comment } from '@/lib/types';
+import { approveLoanAction } from '@/app/actions';
 
 export default function AdminLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -31,8 +33,8 @@ export default function AdminLayout() {
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   
-  const [requests, setRequests] = useState<any[]>([]); // Will now hold 'loans'
-  const [books, setBooks] = useState<any[]>([]);
+  const [requests, setRequests] = useState<Loan[]>([]); // Will now hold 'loans'
+  const [books, setBooks] = useState<Book[]>([]);
   const [messages, setMessages] = useState<any[]>([]); 
   const router = useRouter();
 
@@ -54,7 +56,7 @@ export default function AdminLayout() {
   async function fetchData() {
     setLoading(true);
     
-    // ✅ UPDATE 1: Fetch from the new 'loans' table instead of 'borrow_requests'
+    // Fetch from the 'loans' table
     const { data: reqs } = await supabase
         .from('loans')
         .select('*')
@@ -85,32 +87,18 @@ export default function AdminLayout() {
     }
   };
 
-  // ✅ UPDATE 2: Updated Logic for Approving Loans directly from Dashboard
+  // Safe Loan Approval using Server Action
   const handleRequestAction = async (loanId: number, action: 'Approve' | 'Reject', bookId: number) => {
-    
     if (action === 'Reject') {
-        if(!confirm("Reject this request?")) return;
+        if (!confirm("Reject this request?")) return;
         await supabase.from('loans').update({ status: 'rejected' }).eq('id', loanId);
     } 
     else if (action === 'Approve') {
-        if(!confirm("Approve this loan?")) return;
+        if (!confirm("Approve this loan?")) return;
         
-        // 1. Check Stock
-        const book = books.find(b => b.id === bookId);
-        if (book && book.available_copies > 0) {
-            // 2. Deduct Stock
-            await supabase.from('books').update({ available_copies: book.available_copies - 1 }).eq('id', bookId);
-            
-            // 3. Activate Loan & Set Due Date (14 Days)
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 14);
-
-            await supabase.from('loans').update({ 
-                status: 'active',
-                due_date: dueDate.toISOString()
-            }).eq('id', loanId);
-        } else {
-            return alert("Cannot approve: Book is out of stock!");
+        const res = await approveLoanAction(loanId, bookId);
+        if (!res.success) {
+            return alert(res.error || "Failed to approve loan.");
         }
     }
 
@@ -166,10 +154,8 @@ export default function AdminLayout() {
 
             <div>
               <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Actions</p>
-              {/* ✅ UPDATE 3: Added Loan Manager Link Here */}
               <NavItem link="/admin/loans" label="Loan Manager" icon={ClipboardList} />
               <NavItem link="/admin/manage-library" label="Library Manager" icon={Wand2} />
-              
               <NavItem link="/admin/academic-hub" label="Academic Hub" icon={Folder} />
               <NavItem link="/admin/upload-media" label="Media Manager" icon={UploadCloud} />
               
