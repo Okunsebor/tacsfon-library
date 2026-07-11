@@ -30,6 +30,8 @@ export default function BookDetails() {
 
   useEffect(() => {
     async function init() {
+      // ⚡ Single getSession() call — result is passed to fetchBook() to avoid
+      // a second auth round-trip (previously called twice: line 33 and 67).
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setStudent(session.user);
@@ -37,55 +39,54 @@ export default function BookDetails() {
         // Query pending requests from the 'loans' table (unified system)
         const { data: requests } = await supabase
           .from('loans')
-          .select('*')
+          .select('id, status, book_title')
           .eq('book_id', id)
           .eq('student_email', session.user.email)
           .eq('status', 'requested')
-          .order('request_date', { ascending: false });
+          .order('request_date', { ascending: false })
+          .limit(1);
 
         if (requests && requests.length > 0) {
           const isDigital = requests[0].book_title.endsWith('(PDF Request)');
           setRequestStatus(isDigital ? 'digital' : 'physical');
         }
       }
+      await fetchBook(session);
     }
     init();
-
-    async function fetchBook() {
-      const { data: bookData } = await supabase
-        .from('books')
-        .select('*')
-        .eq('id', id)
-        .eq('is_approved', true)
-        .single();
-      
-      setBook(bookData);
-
-      if (bookData) {
-         const isReadable = bookData.ebook_access === 'public' || bookData.pdf_url;
-         if (isReadable) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                await supabase.from('reading_history').upsert({
-                    user_email: session.user.email,
-                    book_id: bookData.id,
-                    last_read_at: new Date().toISOString()
-                }, { onConflict: 'user_email, book_id' });
-            }
-         }
-      }
-      setLoading(false);
-    }
-    fetchBook();
     fetchComments();
   }, [id]);
+
+  async function fetchBook(session: import('@supabase/supabase-js').Session | null) {
+    const { data: bookData } = await supabase
+      .from('books')
+      .select('*')
+      .eq('id', id)
+      .eq('is_approved', true)
+      .single();
+    
+    setBook(bookData);
+
+    if (bookData && session) {
+       const isReadable = bookData.ebook_access === 'public' || bookData.pdf_url;
+       if (isReadable) {
+           await supabase.from('reading_history').upsert({
+               user_email: session.user.email,
+               book_id: bookData.id,
+               last_read_at: new Date().toISOString()
+           }, { onConflict: 'user_email, book_id' });
+       }
+    }
+    setLoading(false);
+  }
 
   async function fetchComments() {
     const { data } = await supabase
       .from('comments')
-      .select('*')
+      .select('id, book_id, user_name, content, created_at')
       .eq('book_id', id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(50); // ⚡ Prevent unbounded payload on popular books
     
     if (data) setComments(data);
   }

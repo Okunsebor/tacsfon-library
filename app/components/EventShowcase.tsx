@@ -1,12 +1,18 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Volume2, VolumeX, Maximize2, X, Calendar } from 'lucide-react';
 import Image from 'next/image';
 
 export default function EventShowcase() {
   const [events, setEvents] = useState<any[]>([]);
-  const [isExpanded, setIsExpanded] = useState<any>(null); // Stores the full event object
+  // ⚡ Store only the event ID, not the full object — prevents stale snapshot
+  // in the lightbox. The live object is derived from the events array at render time.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const expandedEvent = useMemo(
+    () => events.find(e => e.id === expandedId) ?? null,
+    [events, expandedId]
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -67,7 +73,7 @@ export default function EventShowcase() {
             {events.map((event) => (
                 <div 
                     key={event.id}
-                    onClick={() => setIsExpanded(event)}
+                    onClick={() => setExpandedId(event.id)}
                     className="snap-center shrink-0 w-[140px] md:w-[180px] aspect-[3/4] relative rounded-2xl overflow-hidden cursor-pointer shadow-md border border-gray-100 group hover:shadow-xl transition-all hover:-translate-y-1"
                 >
                     <Image 
@@ -98,11 +104,11 @@ export default function EventShowcase() {
       </div>
 
       {/* --- FULLSCREEN LIGHTBOX (When Clicked) --- */}
-      {isExpanded && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsExpanded(null)}>
+      {expandedEvent && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setExpandedId(null)}>
             
             {/* Close Button */}
-            <button onClick={() => setIsExpanded(null)} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-50">
+            <button onClick={() => setExpandedId(null)} className="absolute top-6 right-6 text-white/70 hover:text-white p-2 z-50">
                 <X size={32} />
             </button>
 
@@ -111,8 +117,8 @@ export default function EventShowcase() {
                 {/* Large Image */}
                 <div className="relative w-full aspect-[4/5] bg-black">
                      <Image 
-                        src={isExpanded.image_url} 
-                        alt={isExpanded.title}
+                        src={expandedEvent.image_url} 
+                        alt={expandedEvent.title}
                         fill
                         className="object-contain"
                      />
@@ -122,18 +128,18 @@ export default function EventShowcase() {
                 <div className="p-6 bg-gray-900 border-t border-white/10">
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
-                            <h3 className="text-xl font-bold text-white mb-1">{isExpanded.title}</h3>
+                            <h3 className="text-xl font-bold text-white mb-1">{expandedEvent.title}</h3>
                             <p className="text-gray-400 text-sm flex items-center gap-2">
                                 <Calendar size={14} />
-                                {new Date(isExpanded.event_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                {new Date(expandedEvent.event_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
                         </div>
                     </div>
 
                     {/* Play Audio Button */}
-                    {isExpanded.audio_url && (
+                    {expandedEvent.audio_url && (
                         <button 
-                            onClick={(e) => toggleAudio(e, isExpanded.audio_url)}
+                            onClick={(e) => toggleAudio(e, expandedEvent.audio_url)}
                             className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isPlaying ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-white text-black hover:bg-gray-200'}`}
                         >
                             {isPlaying ? <VolumeX size={18} /> : <Volume2 size={18} />}

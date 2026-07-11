@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AdminGatekeeper from '@/app/components/AdminGatekeeper';
 import { 
@@ -38,6 +38,31 @@ export default function AdminLayout() {
   const [messages, setMessages] = useState<any[]>([]); 
   const router = useRouter();
 
+  // ⚡ Declared before the useEffect that calls it — const is not hoisted like function.
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    
+    // ⚡ Selective column projections — only pull what the UI needs for each list
+    const { data: reqs } = await supabase
+        .from('loans')
+        .select('id, student_name, student_email, book_id, book_title, status, request_date')
+        .eq('status', 'requested')
+        .order('request_date', { ascending: false });
+    // Cast: selective projection intentionally omits optional fields not needed in this list view
+    setRequests((reqs || []) as Loan[]);
+
+    const { data: allBooks } = await supabase.from('books').select('*').order('title', { ascending: true });
+    setBooks(allBooks || []);
+
+    const { data: msgs } = await supabase
+        .from('messages')
+        .select('id, name, email, message, created_at')
+        .order('created_at', { ascending: false });
+    setMessages(msgs || []);
+    
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -51,27 +76,7 @@ export default function AdminLayout() {
       await fetchData();
     }
     init();
-  }, [router]);
-
-  async function fetchData() {
-    setLoading(true);
-    
-    // Fetch from the 'loans' table
-    const { data: reqs } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('status', 'requested') // Only show pending requests here
-        .order('request_date', { ascending: false });
-    setRequests(reqs || []);
-
-    const { data: allBooks } = await supabase.from('books').select('*').order('title', { ascending: true });
-    setBooks(allBooks || []);
-
-    const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
-    setMessages(msgs || []);
-    
-    setLoading(false);
-  }
+  }, [router, fetchData]);
 
   const handleDeleteBook = async (id: number, title: string) => {
     if (!window.confirm(`Permanently delete "${title}"?`)) return;

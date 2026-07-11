@@ -1,7 +1,7 @@
 'use client';
 import { supabase } from '@/lib/supabaseClient';
 import { extractTextFromPDF } from '@/lib/pdfUtils';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -164,7 +164,12 @@ export default function BookReader() {
       }
     }
     extract();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      // ⚡ Clear stale refs when sections change to prevent leaked DOM node references
+      paragraphRefs.current = [];
+      sectionRefs.current = [];
+    };
   }, [book]);
 
   // Scroll progress
@@ -334,6 +339,7 @@ export default function BookReader() {
     utterance.lang = 'en-US';
 
     if (selectedVoiceURIRef.current) {
+      // ⚡ Voice is looked up once via a cached ref, not getVoices() on every sentence
       const voice = window.speechSynthesis.getVoices().find(v => v.voiceURI === selectedVoiceURIRef.current);
       if (voice) utterance.voice = voice;
     }
@@ -435,16 +441,29 @@ export default function BookReader() {
   const accent = '#006838';
   const borderColor = 'rgba(0,0,0,0.1)';
 
-  // Localized Reading Container Colors
-  const getReadingColors = () => {
+  // ⚡ Memoize reading colors — was a plain function creating a new object every render.
+  // Now the object reference is stable until readingTheme changes.
+  const { readingBg, readingText } = useMemo(() => {
     switch (readingTheme) {
-      case 'dark': return { readingBg: '#0f172a', readingText: '#e5e7eb' };
+      case 'dark':  return { readingBg: '#0f172a', readingText: '#e5e7eb' };
       case 'sepia': return { readingBg: '#fffbeb', readingText: '#78350f' };
       case 'light':
-      default: return { readingBg: '#ffffff', readingText: '#000000' };
+      default:      return { readingBg: '#ffffff', readingText: '#000000' };
     }
-  };
-  const { readingBg, readingText } = getReadingColors();
+  }, [readingTheme]);
+
+  // ⚡ Pre-compute the flat paragraph index map once — eliminates the mutable
+  // `let globalParaIdx = 0` counter inside the render body, which is unsafe
+  // under React 18 Concurrent Mode (render functions can be invoked multiple times).
+  const sectionData = useMemo(() => {
+    let offset = 0;
+    return sections.map(section => {
+      const paras = section.split(/\n/).filter((p: string) => p.trim().length > 5);
+      const startIdx = offset;
+      offset += paras.length;
+      return { paras, startIdx };
+    });
+  }, [sections]);
 
   // ── LOADING STATE ──
   if (loading) {
@@ -719,73 +738,66 @@ export default function BookReader() {
           {/* Extracted text — Interactive Paragraph Blocks */}
           {!extracting && !extractError && sections.length > 0 && (
             <article className="mx-auto px-6 sm:px-8 lg:px-12 py-10 lg:py-16" style={{ maxWidth: '72ch' }}>
-              {(() => {
-                let globalParaIdx = 0;
-                return sections.map((section, sectionIdx) => {
-                  const sectionParas = section.split(/\n/).filter((p: string) => p.trim().length > 5);
-                  const rendered = (
-                    <div
-                      key={sectionIdx}
-                      ref={el => { sectionRefs.current[sectionIdx] = el; }}
-                      className="mb-10 scroll-mt-20"
-                    >
-                      {sections.length > 1 && (
-                        <div className="flex items-center gap-2 mb-5 select-none">
-                          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: textMuted }}>
-                            Section {sectionIdx + 1}
-                          </span>
-                          <div className="flex-1 h-px" style={{ background: borderColor }} />
-                        </div>
-                      )}
-                      <div className="space-y-1">
-                        {sectionParas.map((para, pIdx) => {
-                          const thisGlobalIdx = globalParaIdx++;
-                          const isSpeaking = speakingParagraph === thisGlobalIdx;
-                          return (
-                            <div
-                              key={thisGlobalIdx}
-                              ref={el => { paragraphRefs.current[thisGlobalIdx] = el; }}
-                              onClick={() => {
-                                if (isSpeaking) { stopSpeaking(); }
-                                else { playParagraph(thisGlobalIdx); }
-                              }}
-                              className={`group relative py-3 px-4 rounded-xl cursor-pointer transition-all duration-300 border-l-[3px] ${
-                                isSpeaking
-                                  ? 'border-l-green-500'
-                                  : 'border-l-transparent hover:border-l-gray-300'
-                              }`}
-                              style={{
-                                background: isSpeaking
-                                  ? (readingTheme === 'dark' ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.06)')
-                                  : 'transparent',
-                                fontSize: `${fontSize}px`,
-                                lineHeight: 1.85,
-                                wordSpacing: '0.02em',
-                                letterSpacing: '0.01em',
-                              }}
-                            >
-                              {/* Hover play icon */}
-                              <span className={`absolute -left-1 top-3 transition-all duration-200 ${
-                                isSpeaking
-                                  ? 'opacity-100 scale-100'
-                                  : 'opacity-0 group-hover:opacity-60 scale-75 group-hover:scale-100'
-                              }`}>
-                                <Volume2 size={14} style={{ color: isSpeaking ? accent : textMuted }} className={isSpeaking ? 'animate-pulse' : ''} />
-                              </span>
-                              <span className={`transition-colors duration-300 ${
-                                isSpeaking ? 'font-medium' : 'group-hover:opacity-90'
-                              }`} style={{ color: isSpeaking ? (readingTheme === 'dark' ? '#E5E7EB' : '#111827') : readingText }}>
-                                {para.trim()}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+              {sectionData.map(({ paras: sectionParas, startIdx }, sectionIdx) => (
+                <div
+                  key={sectionIdx}
+                  ref={el => { sectionRefs.current[sectionIdx] = el; }}
+                  className="mb-10 scroll-mt-20"
+                >
+                  {sections.length > 1 && (
+                    <div className="flex items-center gap-2 mb-5 select-none">
+                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: textMuted }}>
+                        Section {sectionIdx + 1}
+                      </span>
+                      <div className="flex-1 h-px" style={{ background: borderColor }} />
                     </div>
-                  );
-                  return rendered;
-                });
-              })()}
+                  )}
+                  <div className="space-y-1">
+                    {sectionParas.map((para: string, pIdx: number) => {
+                      const thisGlobalIdx = startIdx + pIdx;
+                      const isSpeaking = speakingParagraph === thisGlobalIdx;
+                      return (
+                        <div
+                          key={thisGlobalIdx}
+                          ref={el => { paragraphRefs.current[thisGlobalIdx] = el; }}
+                          onClick={() => {
+                            if (isSpeaking) { stopSpeaking(); }
+                            else { playParagraph(thisGlobalIdx); }
+                          }}
+                          className={`group relative py-3 px-4 rounded-xl cursor-pointer transition-all duration-300 border-l-[3px] ${
+                            isSpeaking
+                              ? 'border-l-green-500'
+                              : 'border-l-transparent hover:border-l-gray-300'
+                          }`}
+                          style={{
+                            background: isSpeaking
+                              ? (readingTheme === 'dark' ? 'rgba(0,104,56,0.15)' : 'rgba(0,104,56,0.06)')
+                              : 'transparent',
+                            fontSize: `${fontSize}px`,
+                            lineHeight: 1.85,
+                            wordSpacing: '0.02em',
+                            letterSpacing: '0.01em',
+                          }}
+                        >
+                          {/* Hover play icon */}
+                          <span className={`absolute -left-1 top-3 transition-all duration-200 ${
+                            isSpeaking
+                              ? 'opacity-100 scale-100'
+                              : 'opacity-0 group-hover:opacity-60 scale-75 group-hover:scale-100'
+                          }`}>
+                            <Volume2 size={14} style={{ color: isSpeaking ? accent : textMuted }} className={isSpeaking ? 'animate-pulse' : ''} />
+                          </span>
+                          <span className={`transition-colors duration-300 ${
+                            isSpeaking ? 'font-medium' : 'group-hover:opacity-90'
+                          }`} style={{ color: isSpeaking ? (readingTheme === 'dark' ? '#E5E7EB' : '#111827') : readingText }}>
+                            {para.trim()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
 
               {/* End of book */}

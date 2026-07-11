@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
@@ -45,6 +45,9 @@ export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]); // New State for Trending
   const [search, setSearch] = useState('');
+  // ⚡ Defer the expensive filter computation to a lower-priority render pass —
+  // the input stays responsive even with 500+ books in the list.
+  const deferredSearch = useDeferredValue(search);
   const [currentSlide, setCurrentSlide] = useState(0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -88,17 +91,28 @@ export default function Home() {
   // --- DATA FETCHING ---
   useEffect(() => {
     async function initData() {
-      const { data: dataResult, error } = await supabase.from('books').select('*').eq('is_approved', true).order('title', { ascending: true });
+      // ⚡ Selective column projection — avoids fetching pdf_url, large summary blobs on every page load
+      const { data: dataResult, error } = await supabase
+        .from('books')
+        .select('id, title, author, cover_url, category, available_copies, is_approved, ebook_access, ia_id, summary')
+        .eq('is_approved', true)
+        .order('title', { ascending: true });
 
       if (error) {
           console.error(error);
       } else {
-          const allBooks: Book[] = dataResult || [];
+          // Cast: Supabase narrows the type to the selected columns; our Book interface
+          // requires additional fields used by detail pages (which have their own full queries).
+          const allBooks = (dataResult || []) as Book[];
           setBooks(allBooks);
           
-          // ⚡ CREATE TRENDING COLLECTION (Random Shuffle for "Healthy Mix")
-          const shuffled = [...allBooks].sort(() => 0.5 - Math.random());
-          setTrendingBooks(shuffled.slice(0, 10));
+          // ⚡ Fisher-Yates shuffle — O(n), statistically correct (replaces biased sort)
+          const arr = [...allBooks];
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          setTrendingBooks(arr.slice(0, 10));
       }
     }
     initData();
@@ -126,8 +140,10 @@ export default function Home() {
   }, []);
 
   const filteredBooks = useMemo(() => {
-    return books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()));
-  }, [books, search]);
+    if (!deferredSearch) return books;
+    const q = deferredSearch.toLowerCase();
+    return books.filter(b => b.title.toLowerCase().includes(q) || (b.author || '').toLowerCase().includes(q));
+  }, [books, deferredSearch]);
 
   // --- MEMOIZED CATEGORIES REDUCTION (Prevents re-running smartCategorize on slide/search changes) ---
   const categories = useMemo(() => {
@@ -236,7 +252,8 @@ export default function Home() {
             autoPlay 
             loop 
             muted
-            playsInline 
+            playsInline
+            preload="none"
             className="absolute inset-0 w-full h-full object-cover"
           >
             <source src="https://mjtzovexgxjpjcehnizd.supabase.co/storage/v1/object/public/asssets/community.mp4" type="video/mp4" />

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { User, ShieldCheck, ChevronDown, Menu, X, Home, LayoutDashboard, BookOpen, Brain, Info, Phone, LogIn } from 'lucide-react'; 
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient'; // Ensure you have this import for auth check
@@ -50,9 +51,13 @@ export default function Navbar() {
             
             {/* 1. BRAND LOGO */}
             <Link href="/" className="flex items-center">
-              <img 
+            {/* ⚡ next/image: auto-serves WebP/AVIF, correct size per viewport */}
+              <Image 
                 src="/tacsfon-brand.png" 
                 alt="TACSFON Official Logo" 
+                width={128}
+                height={64}
+                priority
                 className="h-12 md:h-16 w-auto object-contain hover:opacity-90 transition-opacity" 
               />
             </Link>
