@@ -20,6 +20,7 @@ import { rateLimit, RateLimits, rateLimitHeaders } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { logger } from '@/lib/logger';
+import { getAuthenticatedUser, verifyAdminStatus } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -29,6 +30,12 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   const rlResult = await rateLimit(request, RateLimits.mutations);
   if (!rlResult.success) return ApiErrors.tooManyRequests();
+
+  // 1. Authenticate user
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return ApiErrors.unauthorized('Authentication required');
+  }
 
   let body: any;
   try {
@@ -50,8 +57,13 @@ export async function POST(request: NextRequest) {
     return ApiErrors.badRequest('student_email must be a valid email address');
   }
 
+  // 2. Prevent BOLA/IDOR: Students can only request loans for their own email
+  if (user.email?.toLowerCase() !== student_email.toLowerCase().trim()) {
+    return ApiErrors.forbidden('You can only request loans for your own email account');
+  }
+
   try {
-    // 1. Verify the book exists and is approved
+    // 3. Verify the book exists and is approved
     const { data: book, error: bookError } = await db
       .from('books')
       .select('id, title, available_copies, is_approved')
@@ -63,7 +75,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.notFound('Book not found or not available for loan');
     }
 
-    // 2. Check if user already has an active/pending loan for this book
+    // 4. Check if user already has an active/pending loan for this book
     const { data: existing } = await db
       .from('loans')
       .select('id, status')
@@ -78,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Create the loan record
+    // 5. Create the loan record
     const { data: loan, error: loanError } = await db
       .from('loans')
       .insert({
@@ -99,7 +111,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.internal('Failed to create loan request');
     }
 
-    // 4. Invalidate cached loan status for this user+book combo
+    // 6. Invalidate cached loan status for this user+book combo
     await cache.del(CacheKeys.loanStatus(student_email, book_id));
 
     logger.info('[api/loans] Loan request created', {
@@ -121,11 +133,25 @@ export async function GET(request: NextRequest) {
   const rlResult = await rateLimit(request, RateLimits.catalog);
   if (!rlResult.success) return ApiErrors.tooManyRequests();
 
+  // 1. Authenticate user
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return ApiErrors.unauthorized('Authentication required');
+  }
+
   const { searchParams } = request.nextUrl;
   const email = searchParams.get('email')?.trim().toLowerCase();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return ApiErrors.badRequest('A valid "email" query parameter is required');
+  }
+
+  // 2. Prevent BOLA/IDOR: Students can only view their own loans. Admins can view any loans.
+  const isOwner = user.email?.toLowerCase() === email;
+  const isAdmin = await verifyAdminStatus(user.email);
+
+  if (!isOwner && !isAdmin) {
+    return ApiErrors.forbidden('You are not authorized to view this loan history');
   }
 
   const { page, limit, offset } = parsePagination(searchParams);

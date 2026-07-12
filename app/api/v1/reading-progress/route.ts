@@ -21,6 +21,7 @@ import { rateLimit, RateLimits } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { cache, CacheKeys, CacheTTL } from '@/lib/cache';
 import { logger } from '@/lib/logger';
+import { getAuthenticatedUser, verifyAdminStatus } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -30,6 +31,12 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   const rlResult = await rateLimit(request, { limit: 60, windowSeconds: 60 });
   if (!rlResult.success) return ApiErrors.tooManyRequests();
+
+  // 1. Authenticate user
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return ApiErrors.unauthorized('Authentication required');
+  }
 
   let body: any;
   try {
@@ -54,8 +61,13 @@ export async function POST(request: NextRequest) {
     return ApiErrors.badRequest('scroll_position must be a non-negative number');
   }
 
+  // 2. Prevent BOLA/IDOR: User can only save reading progress for themselves
+  if (user.email?.toLowerCase() !== user_email.toLowerCase().trim()) {
+    return ApiErrors.forbidden('You can only save reading progress for your own email account');
+  }
+
   try {
-    // Upsert reading progress (INSERT or UPDATE on conflict)
+    // 3. Upsert reading progress (INSERT or UPDATE on conflict)
     const { error } = await db
       .from('reading_progress')
       .upsert(
@@ -79,7 +91,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.internal('Failed to save reading progress');
     }
 
-    // Update cache to reflect new progress immediately
+    // 4. Update cache to reflect new progress immediately
     const cacheKey = CacheKeys.readingProgress(user_email, book_id);
     await cache.set(
       cacheKey,
@@ -106,6 +118,12 @@ export async function GET(request: NextRequest) {
   const rlResult = await rateLimit(request, RateLimits.catalog);
   if (!rlResult.success) return ApiErrors.tooManyRequests();
 
+  // 1. Authenticate user
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return ApiErrors.unauthorized('Authentication required');
+  }
+
   const { searchParams } = request.nextUrl;
   const email = searchParams.get('email')?.trim().toLowerCase();
   const bookId = searchParams.get('book_id');
@@ -115,6 +133,14 @@ export async function GET(request: NextRequest) {
   }
   if (!bookId || isNaN(Number(bookId))) {
     return ApiErrors.badRequest('"book_id" must be a valid number');
+  }
+
+  // 2. Prevent BOLA/IDOR: User can only read their own progress. Admins can read any progress.
+  const isOwner = user.email?.toLowerCase() === email;
+  const isAdmin = await verifyAdminStatus(user.email);
+
+  if (!isOwner && !isAdmin) {
+    return ApiErrors.forbidden('You are not authorized to view this reading progress');
   }
 
   const cacheKey = CacheKeys.readingProgress(email, bookId);
