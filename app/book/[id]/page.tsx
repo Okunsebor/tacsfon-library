@@ -8,16 +8,22 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { Book, Comment } from '@/lib/types';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useSession } from '@/features/auth/hooks/useSession';
+import { useBook } from '@/features/books/hooks/useBook';
+import { useBorrowStatus } from '@/features/loans/hooks/useBorrowStatus';
+import { upsertReadingHistory } from '@/features/books/api/books.api';
+import { insertLoanRequest } from '@/features/loans/api/loans.api';
 
 export default function BookDetails() {
   const { id } = useParams();
   const router = useRouter();
   
-  const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [requestStatus, setRequestStatus] = useState<string | null>(null);
-  const [student, setStudent] = useState<SupabaseUser | null>(null);
+  const bookId = Array.isArray(id) ? id[0] : id;
+
+  // ⚡ Clean Architecture Hooks integration
+  const { user, loading: authLoading } = useSession();
+  const { book, loading: bookLoading } = useBook(bookId);
+  const { requestStatus, setRequestStatus, loading: statusLoading } = useBorrowStatus(bookId, user?.email);
 
   // --- UI STATES ---
   const [isExpanded, setIsExpanded] = useState(false); // For Read More toggle
@@ -28,63 +34,39 @@ export default function BookDetails() {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Record reading history when book details and session are loaded
   useEffect(() => {
-    async function init() {
-      // ⚡ Single getSession() call — result is passed to fetchBook() to avoid
-      // a second auth round-trip (previously called twice: line 33 and 67).
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setStudent(session.user);
-        
-        // Query pending requests from the 'loans' table (unified system)
-        const { data: requests } = await supabase
-          .from('loans')
-          .select('id, status, book_title')
-          .eq('book_id', id)
-          .eq('student_email', session.user.email)
-          .eq('status', 'requested')
-          .order('request_date', { ascending: false })
-          .limit(1);
+    const email = user?.email;
+    if (!book || !email) return;
 
-        if (requests && requests.length > 0) {
-          const isDigital = requests[0].book_title.endsWith('(PDF Request)');
-          setRequestStatus(isDigital ? 'digital' : 'physical');
+    const emailStr: string = email;
+    const bookIdVal: number = book.id;
+    const ebookAccessVal = book.ebook_access;
+    const pdfUrlVal = book.pdf_url;
+
+    async function recordHistory() {
+      const isReadable = ebookAccessVal === 'public' || pdfUrlVal;
+      if (isReadable) {
+        try {
+          await upsertReadingHistory(emailStr, bookIdVal);
+        } catch (err) {
+          console.error('Error updating reading history:', err);
         }
       }
-      await fetchBook(session);
     }
-    init();
+    recordHistory();
+  }, [book, user]);
+
+  // Load comments
+  useEffect(() => {
     fetchComments();
-  }, [id]);
-
-  async function fetchBook(session: import('@supabase/supabase-js').Session | null) {
-    const { data: bookData } = await supabase
-      .from('books')
-      .select('*')
-      .eq('id', id)
-      .eq('is_approved', true)
-      .single();
-    
-    setBook(bookData);
-
-    if (bookData && session) {
-       const isReadable = bookData.ebook_access === 'public' || bookData.pdf_url;
-       if (isReadable) {
-           await supabase.from('reading_history').upsert({
-               user_email: session.user.email,
-               book_id: bookData.id,
-               last_read_at: new Date().toISOString()
-           }, { onConflict: 'user_email, book_id' });
-       }
-    }
-    setLoading(false);
-  }
+  }, [bookId]);
 
   async function fetchComments() {
     const { data } = await supabase
       .from('comments')
       .select('id, book_id, user_name, content, created_at')
-      .eq('book_id', id)
+      .eq('book_id', bookId)
       .order('created_at', { ascending: false })
       .limit(50); // ⚡ Prevent unbounded payload on popular books
     
@@ -93,11 +75,11 @@ export default function BookDetails() {
 
   const handleListenToBook = () => {
     if (!book?.pdf_url) return;
-    router.push(`/read/${id}?autoplay=true`);
+    router.push(`/read/${bookId}?autoplay=true`);
   };
 
   const handleRequest = async (type: 'physical' | 'digital') => {
-    if (!student) {
+    if (!user) {
       alert("Please log in as a student first.");
       router.push('/student-login');
       return;
@@ -105,21 +87,24 @@ export default function BookDetails() {
 
     const displayTitle = type === 'digital' ? `${book?.title} (PDF Request)` : book?.title;
 
-    // Insert into loans table to ensure requests are visible in the Librarian Desk
-    const { error } = await supabase.from('loans').insert([{
-      student_email: student.email,
-      student_name: student.user_metadata?.full_name || student.email,
-      book_id: book?.id,
-      book_title: displayTitle,
-      status: 'requested',
-      request_date: new Date().toISOString()
-    }]);
+    try {
+      // ⚡ Safe call to Data Access Layer for loan insertion
+      await insertLoanRequest({
+        student_email: user.email!,
+        student_name: user.user_metadata?.full_name || user.email!,
+        book_id: book?.id!,
+        book_title: displayTitle!,
+        status: 'requested',
+        request_date: new Date().toISOString(),
+        due_date: null,
+        return_date: null,
+        returned_date: null
+      });
 
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
       setRequestStatus(type);
       alert(type === 'digital' ? "Request Sent! Check your email soon." : "Request Sent! Visit the library desk.");
+    } catch (err: any) {
+      alert("Error: " + err.message);
     }
   };
 
@@ -127,7 +112,7 @@ export default function BookDetails() {
     e.preventDefault();
     if (!newName.trim() || !newComment.trim()) return;
     setSubmitting(true);
-    const { error } = await supabase.from('comments').insert([{ book_id: id, user_name: newName, content: newComment }]);
+    const { error } = await supabase.from('comments').insert([{ book_id: bookId, user_name: newName, content: newComment }]);
     if (!error) {
       setNewName('');
       setNewComment('');
@@ -135,6 +120,8 @@ export default function BookDetails() {
     }
     setSubmitting(false);
   };
+
+  const loading = authLoading || bookLoading || statusLoading;
 
   if (loading) return null;
 

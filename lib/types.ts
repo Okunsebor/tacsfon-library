@@ -7,11 +7,11 @@ export interface Book {
   summary: string | null;
   category: string | null;
   available_copies: number;
-  description: string | null;
+  description?: string | null;
   is_approved: boolean;
   ebook_access: 'public' | 'private' | null;
   ia_id: string | null;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Loan {

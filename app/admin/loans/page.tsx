@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Loan } from '@/lib/types';
 import { approveLoanAction } from '@/app/actions';
 
+import { fetchLoansByStatus, rejectLoanRequest, returnLoan } from '@/features/loans/api/loans.api';
+
 export default function LoanManager() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,19 +19,15 @@ export default function LoanManager() {
   }, [filter]);
 
   async function fetchLoans() {
-    setLoading(true);
-    let query = supabase
-      .from('loans')
-      .select('*, books(available_copies)') // We fetch book stock too
-      .order('request_date', { ascending: false });
-
-    if (filter !== 'all') {
-        query = query.eq('status', filter);
+    try {
+      setLoading(true);
+      const data = await fetchLoansByStatus(filter);
+      setLoans(data);
+    } catch (err) {
+      console.error('Error fetching loans:', err);
+    } finally {
+      setLoading(false);
     }
-
-    const { data } = await query;
-    setLoans((data as any) || []);
-    setLoading(false);
   }
 
   // --- ACTIONS ---
@@ -50,27 +48,24 @@ export default function LoanManager() {
   const handleReturn = async (loan: Loan) => {
     if (!confirm(`Mark "${loan.book_title}" as returned?`)) return;
 
-    // A. Add Stock Back (Safe decrement/increment)
-    const { data: book } = await supabase.from('books').select('available_copies').eq('id', loan.book_id).single();
-    
-    if (book) {
-       await supabase.from('books').update({ available_copies: book.available_copies + 1 }).eq('id', loan.book_id);
+    try {
+      // ⚡ Safe transactional return loan API call
+      await returnLoan(loan.id, loan.book_id, 'return_date');
+      fetchLoans();
+    } catch (err: any) {
+      alert("Error: " + err.message);
     }
-
-    // B. Mark Loan as Returned
-    await supabase.from('loans').update({
-        status: 'returned',
-        return_date: new Date().toISOString()
-    }).eq('id', loan.id);
-
-    fetchLoans();
   };
 
   // 3. REJECT REQUEST
   const handleReject = async (id: number) => {
     if (!confirm("Reject this request?")) return;
-    await supabase.from('loans').update({ status: 'rejected' }).eq('id', id);
-    fetchLoans();
+    try {
+      await rejectLoanRequest(id);
+      fetchLoans();
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
   };
 
   return (

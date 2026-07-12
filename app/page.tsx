@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import Navbar from '@/app/components/Navbar';
 import Link from 'next/link';
 import { 
@@ -10,40 +9,17 @@ import {
 import EventShowcase from './components/EventShowcase';
 import BookCard from '@/app/components/BookCard';
 import { Book } from '@/lib/types';
-
-// --- 🧠 UPGRADED CATEGORIZER (Moved outside component to avoid re-creation) ---
-const smartCategorize = (book: Book) => {
-  // 1. Force Database Cleanup (Merge duplicate religious terms)
-  let dbCat = (book.category || "").toLowerCase();
-  if (['religion', 'spiritual', 'christianity', 'faith', 'gospel'].includes(dbCat)) {
-      return 'Spiritual Growth';
-  }
-  if (book.category && book.category !== 'General Collection' && book.category !== 'General') return book.category;
-  
-  const text = (book.title + " " + (book.summary || "")).toLowerCase();
-  const author = (book.author || "").toLowerCase();
-
-  // 2. Author Intelligence
-  if (author.match(/hagin|oyedepo|adeboye|kumuyi|selman|watchman nee|spurgeon|copeland|prince|omartian|lewis|piper|lucado|kuhlman|hinn/i)) return 'Spiritual Growth';
-  if (author.match(/maxwell|sinek|covey|carnegie|munroe/i)) {
-     return (text.includes('prayer') || text.includes('spirit')) ? 'Spiritual Growth' : 'Leadership';
-  }
-  if (author.match(/kiyosaki|buffett|dangote|osuntokun|ramsey/i)) return 'Finance & Career';
-  if (author.match(/chapman|vallotton/i)) return 'Relationships';
-
-  // 3. Keyword Intelligence
-  if (text.match(/leader|influence|laws|habit|strategy/i)) return 'Leadership';
-  if (text.match(/prayer|god|spirit|jesus|faith|bible|gospel|church|devotional|holiness/i)) return 'Spiritual Growth';
-  if (text.match(/money|finance|rich|wealth|business|economy|invest/i)) return 'Finance & Career';
-  if (text.match(/physics|chem|math|calculus|program|code|python|engineer|biology|statistic|law/i)) return 'Academic';
-  if (text.match(/love|marriage|dating|sex|courtship/i)) return 'Relationships';
-  
-  return 'General Collection';
-};
+import { useBooks } from '@/features/books/hooks/useBooks';
 
 export default function Home() {
-  const [books, setBooks] = useState<Book[]>([]);
-  const [trendingBooks, setTrendingBooks] = useState<Book[]>([]); // New State for Trending
+  const {
+    books,
+    trendingBooks,
+    categories,
+    sortedCategoryNames,
+    loading
+  } = useBooks();
+
   const [search, setSearch] = useState('');
   // ⚡ Defer the expensive filter computation to a lower-priority render pass —
   // the input stays responsive even with 500+ books in the list.
@@ -88,36 +64,6 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  // --- DATA FETCHING ---
-  useEffect(() => {
-    async function initData() {
-      // ⚡ Selective column projection — avoids fetching pdf_url, large summary blobs on every page load
-      const { data: dataResult, error } = await supabase
-        .from('books')
-        .select('id, title, author, cover_url, category, available_copies, is_approved, ebook_access, ia_id, summary')
-        .eq('is_approved', true)
-        .order('title', { ascending: true });
-
-      if (error) {
-          console.error(error);
-      } else {
-          // Cast: Supabase narrows the type to the selected columns; our Book interface
-          // requires additional fields used by detail pages (which have their own full queries).
-          const allBooks = (dataResult || []) as Book[];
-          setBooks(allBooks);
-          
-          // ⚡ Fisher-Yates shuffle — O(n), statistically correct (replaces biased sort)
-          const arr = [...allBooks];
-          for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-          }
-          setTrendingBooks(arr.slice(0, 10));
-      }
-    }
-    initData();
-  }, []);
-
   // --- AUTO-SCROLL PILLARS ---
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -144,21 +90,6 @@ export default function Home() {
     const q = deferredSearch.toLowerCase();
     return books.filter(b => b.title.toLowerCase().includes(q) || (b.author || '').toLowerCase().includes(q));
   }, [books, deferredSearch]);
-
-  // --- MEMOIZED CATEGORIES REDUCTION (Prevents re-running smartCategorize on slide/search changes) ---
-  const categories = useMemo(() => {
-    return books.reduce((acc, book) => {
-      let catRaw = smartCategorize(book);
-      const cat = catRaw.charAt(0).toUpperCase() + catRaw.slice(1);
-      if (!acc[cat]) acc[cat] = [];
-      acc[cat].push(book);
-      return acc;
-    }, {} as Record<string, Book[]>);
-  }, [books]);
-
-  const sortedCategoryNames = useMemo(() => {
-    return Object.keys(categories).sort();
-  }, [categories]);
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans">

@@ -12,6 +12,9 @@ import {
 import { Book, Loan } from '@/lib/types';
 import BookCard from '@/app/components/BookCard';
 
+import { fetchReadingHistory, fetchDashboardBooks } from '@/features/books/api/books.api';
+import { fetchLoansByEmail } from '@/features/loans/api/loans.api';
+
 export default function StudentDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -42,28 +45,24 @@ export default function StudentDashboard() {
       const fullName = session.user.user_metadata?.full_name;
       if (fullName) setUserName(fullName.split(' ')[0]);
 
-      const { data: history } = await supabase
-        .from('reading_history')
-        .select('last_read_at, book_id, books (id, title, author, cover_url)')
-        .eq('user_email', email)
-        .order('last_read_at', { ascending: false });
-      const historyData = history || [];
-      setRecentBooks(historyData);
+      try {
+        const historyData = await fetchReadingHistory(email!);
+        setRecentBooks(historyData);
 
-      const { data: loanData } = await supabase
-        .from('loans').select('*').eq('student_email', email)
-        .order('request_date', { ascending: false });
-      const allLoans: Loan[] = loanData || [];
-      setLoans(allLoans);
-      const activeCount = allLoans.filter((l) => l.status === 'active').length;
-      setStats(prev => ({ ...prev, booksRead: historyData.length, hoursRead: historyData.length * 2, activeBorrows: activeCount }));
+        const allLoans = await fetchLoansByEmail(email!);
+        setLoans(allLoans);
+        const activeCount = allLoans.filter((l) => l.status === 'active').length;
+        setStats(prev => ({ ...prev, booksRead: historyData.length, hoursRead: historyData.length * 2, activeBorrows: activeCount }));
 
-      const { data: books } = await supabase.from('books').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(8);
-      const allBooks: Book[] = books || [];
-      setRecommendedBooks(allBooks.slice(0, 4));
-      setNewBooks(allBooks.slice(4, 8));
-      if (allBooks.length > 0) setFeaturedBook(allBooks[0]);
-      setLoading(false);
+        const allBooks = await fetchDashboardBooks(8);
+        setRecommendedBooks(allBooks.slice(0, 4));
+        setNewBooks(allBooks.slice(4, 8));
+        if (allBooks.length > 0) setFeaturedBook(allBooks[0]);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     init();
   }, [router]);

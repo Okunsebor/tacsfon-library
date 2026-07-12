@@ -1,35 +1,20 @@
 'use client';
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useRef } from 'react';
 import { Volume2, VolumeX, Maximize2, X, Calendar } from 'lucide-react';
 import Image from 'next/image';
+import { useEvents } from '@/features/events/hooks/useEvents';
 
 export default function EventShowcase() {
-  const [events, setEvents] = useState<any[]>([]);
-  // ⚡ Store only the event ID, not the full object — prevents stale snapshot
-  // in the lightbox. The live object is derived from the events array at render time.
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const expandedEvent = useMemo(
-    () => events.find(e => e.id === expandedId) ?? null,
-    [events, expandedId]
-  );
+  const {
+    events,
+    expandedId,
+    setExpandedId,
+    expandedEvent,
+    loading
+  } = useEvents();
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Fetch Events
-  useEffect(() => {
-    async function fetchEvents() {
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: true })
-        .gte('event_date', new Date().toISOString()) 
-        .limit(10);
-      
-      if (data && data.length > 0) setEvents(data);
-    }
-    fetchEvents();
-  }, []);
 
   // Handle Audio
   const toggleAudio = (e: React.MouseEvent, url: string) => {

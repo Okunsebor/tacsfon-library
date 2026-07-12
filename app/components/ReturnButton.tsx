@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+
+import { returnLoan } from '@/features/loans/api/loans.api';
 
 export default function ReturnButton({ loanId, bookId }: { loanId: number, bookId: number }) {
   const [loading, setLoading] = useState(false);
@@ -14,31 +15,16 @@ export default function ReturnButton({ loanId, bookId }: { loanId: number, bookI
 
     setLoading(true);
 
-    // 1. Mark Loan as Returned
-    const { error: loanError } = await supabase
-      .from('loans')
-      .update({ status: 'returned', returned_date: new Date().toISOString() })
-      .eq('id', loanId);
-
-    if (loanError) {
-      alert("Error returning book");
+    try {
+      // ⚡ Safe transactional return loan API call
+      await returnLoan(loanId, bookId, 'returned_date');
+      alert("Book returned successfully!");
+      router.refresh();
+    } catch (err: any) {
+      alert("Error returning book: " + err.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // 2. Increase Book Stock (Fetch current stock first to be safe)
-    const { data: book } = await supabase.from('books').select('available_copies').eq('id', bookId).single();
-    
-    if (book) {
-      await supabase
-        .from('books')
-        .update({ available_copies: book.available_copies + 1 })
-        .eq('id', bookId);
-    }
-
-    alert("Book returned successfully!");
-    router.refresh();
-    setLoading(false);
   }
 
   return (
