@@ -1,8 +1,6 @@
 -- ============================================================
--- Migration 001: Production Indexes for High-Traffic Queries
+-- Migration: Production Indexes for High-Traffic Queries
 -- ============================================================
--- Run this in your Supabase SQL Editor.
--- All indexes use CONCURRENTLY to avoid table locks on live data.
 -- Safe to run multiple times (IF NOT EXISTS guards).
 
 -- ─── Books Table ─────────────────────────────────────────────
@@ -62,9 +60,3 @@ CREATE TABLE IF NOT EXISTS reading_progress (
 -- Fast lookup for restoring a reader's position
 CREATE INDEX IF NOT EXISTS idx_reading_progress_lookup
   ON reading_progress(user_email, book_id);
-
--- ─── Verify ──────────────────────────────────────────────────
--- Run this query to confirm all indexes were created:
--- SELECT indexname, tablename FROM pg_indexes
--- WHERE schemaname = 'public'
--- ORDER BY tablename, indexname;
