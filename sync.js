@@ -48,10 +48,15 @@ async function executeSync() {
         if (match) {
             const exactUrl = `${supabaseUrl}/storage/v1/object/public/books/${match.name}`;
 
-            // Execute the update
-            await supabase.from('books').update({ file_url: exactUrl }).eq('id', book.id);
-            matchCount++;
-            console.log(`[SYNCED] ${book.title} -> ${match.name}`);
+            // Execute the update on the correct column: pdf_url
+            const { error: updateError } = await supabase.from('books').update({ pdf_url: exactUrl }).eq('id', book.id);
+            
+            if (updateError) {
+                console.error(`[ERROR SYNCING] ${book.title}:`, updateError.message);
+            } else {
+                matchCount++;
+                console.log(`[SYNCED] ${book.title} -> ${match.name}`);
+            }
         } else {
             console.log(`[ORPHANED - NO MATCH] ${book.title}`);
         }

@@ -1,14 +1,58 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, FileQuestion } from 'lucide-react';
 import { useBook } from '@/features/books/hooks/useBook';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function DocumentViewer() {
   const { id } = useParams();
   const bookId = Array.isArray(id) ? id[0] : id;
   const { book, loading } = useBook(bookId);
+  const [urlStatus, setUrlStatus] = useState<'pending' | 'ok' | 'error'>('pending');
+
+  const pdfUrl = book?.pdf_url || undefined;
+  const iaId = book?.ia_id || undefined;
+  
+  let embedUrl = pdfUrl;
+  if (pdfUrl && pdfUrl.includes('drive.google.com')) {
+    const m = pdfUrl.match(/\/d\/(.*?)\//);
+    if (m) embedUrl = `https://drive.google.com/file/d/${m[1]}/preview`;
+  }
+  
+  const hasEmbed = !!embedUrl;
+  const hasIA = !!(iaId && !pdfUrl);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkUrl() {
+      if (!hasEmbed) {
+        if (isMounted) setUrlStatus('ok'); // IA or nothing, skip check
+        return;
+      }
+      try {
+        const res = await fetch(embedUrl!, { method: 'HEAD' });
+        if (!isMounted) return;
+        if (res.ok) {
+          setUrlStatus('ok');
+        } else {
+          setUrlStatus('error');
+        }
+      } catch (err) {
+        // If fetch fails (CORS or network), assume error or let iframe handle it. 
+        // We'll lean towards showing the custom error.
+        if (isMounted) setUrlStatus('error');
+      }
+    }
+
+    if (book && !loading) {
+      checkUrl();
+    }
+
+    return () => { isMounted = false; };
+  }, [embedUrl, hasEmbed, book, loading]);
 
   if (loading) {
     return (
@@ -28,18 +72,6 @@ export default function DocumentViewer() {
       </div>
     );
   }
-
-  const pdfUrl = book.pdf_url || undefined;
-  const iaId = book.ia_id || undefined;
-  
-  let embedUrl = pdfUrl;
-  if (pdfUrl && pdfUrl.includes('drive.google.com')) {
-    const m = pdfUrl.match(/\/d\/(.*?)\//);
-    if (m) embedUrl = `https://drive.google.com/file/d/${m[1]}/preview`;
-  }
-  
-  const hasEmbed = !!embedUrl;
-  const hasIA = !!(iaId && !pdfUrl);
 
   if (!hasEmbed && !hasIA) {
     return (
@@ -64,16 +96,38 @@ export default function DocumentViewer() {
         <div className="flex-1 text-center truncate px-4">
             <span className="font-bold text-white text-sm truncate">{book.title}</span>
         </div>
-        <div className="flex-1"></div> {/* Spacer for centering */}
+        <div className="flex-1"></div>
       </div>
-      <div className="flex-1 w-full bg-[#323639]">
-        <iframe
-          src={hasEmbed ? embedUrl : `https://archive.org/embed/${iaId}`}
-          className="w-full h-full border-none"
-          title={book.title}
-          allow="autoplay"
-          allowFullScreen
-        />
+      <div className="flex-1 w-full bg-[#323639] relative">
+        {urlStatus === 'pending' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#323639] text-white z-10">
+            <Loader2 className="animate-spin text-green-500 mb-4" size={40} />
+            <p className="font-medium text-gray-400">Locating document...</p>
+          </div>
+        )}
+        
+        {urlStatus === 'error' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white z-10 p-8 text-center">
+            <FileQuestion size={64} className="text-red-500 mb-6 opacity-80" />
+            <h2 className="text-3xl font-bold mb-4">Document Unavailable</h2>
+            <p className="text-gray-400 max-w-md mb-8 leading-relaxed">
+              We couldn't locate the file for this book. It may have been removed or the link is broken. 
+            </p>
+            <div className="p-4 bg-gray-800 rounded-lg text-sm text-gray-500 font-mono break-all max-w-2xl border border-gray-700">
+              Debug URL: {embedUrl}
+            </div>
+          </div>
+        )}
+
+        {urlStatus === 'ok' && (
+          <iframe
+            src={hasEmbed ? embedUrl : `https://archive.org/embed/${iaId}`}
+            className="w-full h-full border-none"
+            title={book.title}
+            allow="autoplay"
+            allowFullScreen
+          />
+        )}
       </div>
     </div>
   );
