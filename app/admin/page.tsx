@@ -25,7 +25,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Book, Loan, Comment } from '@/lib/types';
-import { approveLoanAction } from '@/app/actions';
+import { approveLoanAction, updateAdminPasskeyAction } from '@/app/actions';
 
 export default function AdminLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -299,8 +299,13 @@ export default function AdminLayout() {
                                         onClick={async () => {
                                             const val = (document.getElementById('newPasskey') as HTMLInputElement).value;
                                             if(!val) return alert("Enter a value!");
-                                            await supabase.from('admin_settings').update({ setting_value: val }).eq('setting_key', 'admin_passkey');
-                                            alert("Passkey Updated!");
+                                            const result = await updateAdminPasskeyAction(val);
+                                            if (result.success) {
+                                                alert("Passkey Updated!");
+                                                (document.getElementById('newPasskey') as HTMLInputElement).value = '';
+                                            } else {
+                                                alert("Error updating passkey: " + result.error);
+                                            }
                                         }}
                                         className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-lg"
                                     >

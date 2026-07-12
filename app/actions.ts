@@ -183,3 +183,39 @@ export async function approveLoanAction(loanId: number, bookId: number): Promise
     return { success: false, error: err.message || 'Server error occurred during approval.' };
   }
 }
+
+/**
+ * Securely updates the master admin passkey.
+ * Enforces admin authorization to prevent unauthorized changes.
+ */
+export async function updateAdminPasskeyAction(newPasskey: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Authenticate and Authorize the Admin caller
+    const user = await getAuthenticatedUser();
+    const isAdmin = await verifyAdminStatus(user?.email);
+
+    if (!isAdmin) {
+      return { success: false, error: 'Access Denied: Admin privileges required' };
+    }
+
+    if (!newPasskey || newPasskey.trim() === '') {
+      return { success: false, error: 'Passkey cannot be empty' };
+    }
+
+    // 2. Update the passkey in the database
+    const { error } = await db
+      .from('admin_settings')
+      .update({ setting_value: newPasskey })
+      .eq('setting_key', 'admin_passkey');
+
+    if (error) {
+      console.error('Error updating passkey:', error);
+      return { success: false, error: 'Failed to update passkey' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('updateAdminPasskeyAction failed:', err);
+    return { success: false, error: 'An error occurred during update' };
+  }
+}

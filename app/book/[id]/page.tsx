@@ -173,7 +173,7 @@ export default function BookDetails() {
                 {/* Mobile Action Button */}
                 <div className="lg:hidden flex flex-col gap-3">
                     {isReadable ? (
-                        <Link href={`/read/${book.id}`} className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/30">
+                        <Link href={`/view/${book.id}`} target="_blank" rel="noopener noreferrer" className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-900/30">
                             <BookOpen size={20} /> Read Now
                         </Link>
                     ) : (
@@ -243,7 +243,7 @@ export default function BookDetails() {
                     {/* DESKTOP ACTIONS */}
                     <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-gray-900/10">
                         {isReadable && (
-                            <Link href={`/read/${book.id}`} className="bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-xl">
+                            <Link href={`/view/${book.id}`} target="_blank" rel="noopener noreferrer" className="bg-gray-900 text-white hover:bg-black font-bold text-lg py-4 rounded-2xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-xl">
                               <BookOpen size={20} className="text-green-400" /> Read Now
                             </Link>
                         )}

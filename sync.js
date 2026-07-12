@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Use your exact Supabase URL and your SERVICE_ROLE key (not the anon key) to bypass RLS.
-const supabaseUrl = 'https://mjtzovexgxjpjcehnizd.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qdHpvdmV4Z3hqcGpjZWhuaXpkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDIzMDYxNywiZXhwIjoyMDc5ODA2NjE3fQ.BcIv34uZ_reSXTb_grMv1BGB_vI-B2mSelkgnTy_PrA';
+// Assumes this script is run with node --env-file=.env.local sync.js
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing Supabase credentials in environment.');
+    process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
